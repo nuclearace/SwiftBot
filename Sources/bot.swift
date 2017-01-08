@@ -38,12 +38,11 @@ class DiscordBot : DiscordClientDelegate {
     let startTime = Date()
 
     fileprivate let weatherLimiter = RateLimiter(tokensPerInterval: 10, interval: "minute")
+    fileprivate let wolframLimiter = RateLimiter(tokensPerInterval: 67, interval: "day")
     fileprivate var inVoiceChannel = false
     fileprivate var playingYoutube = false
     fileprivate var youtube = EncoderProcess()
     fileprivate var youtubeQueue = [QueuedVideo]()
-
-    var weather = ""
 
     init(token: DiscordToken) {
         client = DiscordClient(token: token, configuration: [.log(.verbose), .shards(2), .fillUsers, .pruneUsers])
@@ -308,6 +307,8 @@ extension DiscordBot : CommandHandler {
             handleStats(with: arguments, message: message)
         case .weather where arguments.count > 0:
             handleWeather(with: arguments, message: message)
+        case .wolfram where arguments.count > 0:
+            handleWolfram(with: arguments, message: message)
         case .forecast where arguments.count > 0:
             handleForecast(with: arguments, message: message)
         default:
@@ -350,9 +351,8 @@ extension DiscordBot : CommandHandler {
             location = arguments.joined(separator: " ")
         }
 
-        weatherLimiter.removeTokens(1) {[weak self] err, tokens in
-            guard let this = self else { return }
-            guard let forecast = getForecastData(forLocation: location, withApiKey: this.weather),
+        weatherLimiter.removeTokens(1) {err, tokens in
+            guard let forecast = getForecastData(forLocation: location),
                   let embed = createForecastEmbed(withForecastData: forecast, tomorrow: tomorrow) else {
                 message.channel?.sendMessage("Something went wrong with getting the forecast data")
 
@@ -386,9 +386,8 @@ extension DiscordBot : CommandHandler {
     }
 
     func handleWeather(with arguments: [String], message: DiscordMessage) {
-        weatherLimiter.removeTokens(1) {[weak self] err, tokens in
-            guard let this = self else { return }
-            guard let weatherData = getWeatherData(forLocation: arguments.joined(separator: " "), withApiKey: this.weather),
+        weatherLimiter.removeTokens(1) {err, tokens in
+            guard let weatherData = getWeatherData(forLocation: arguments.joined(separator: " ")),
                   let embed = createWeatherEmbed(withWeatherData: weatherData) else {
                 message.channel?.sendMessage("Something went wrong with getting the weather data")
 
@@ -396,6 +395,12 @@ extension DiscordBot : CommandHandler {
             }
 
             message.channel?.sendMessage("", embed: embed)
+        }
+    }
+
+    func handleWolfram(with arguments: [String], message: DiscordMessage) {
+        wolframLimiter.removeTokens(1) {err, tokens in
+            message.channel?.sendMessage(getSimpleWolframAnswer(forQuestion: arguments.joined(separator: "+")))
         }
     }
 

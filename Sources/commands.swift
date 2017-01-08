@@ -30,6 +30,7 @@ enum Command : String {
     case topic = "topic"
     case youtube = "yt"
     case weather = "weather"
+    case wolfram = "wolfram"
 }
 
 protocol CommandHandler {

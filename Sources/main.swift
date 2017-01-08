@@ -21,6 +21,8 @@ import Foundation
 import struct SwiftDiscord.DiscordToken
 
 let token = "Bot mysupersecrettoken" as DiscordToken
+let weather = ""
+let wolfram = ""
 
 let queue = DispatchQueue(label: "Async Read")
 let bot = DiscordBot(token: token)
@@ -42,6 +44,5 @@ print("Type 'quit' to stop")
 readAsync()
 
 bot.connect()
-bot.weather = ""
 
 CFRunLoopRun()
