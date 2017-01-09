@@ -293,6 +293,8 @@ extension DiscordBot : CommandHandler {
             handleJoin(with: arguments, message: message)
         case .leave:
             handleLeave(with: arguments, message: message)
+        case .is:
+            handleIs(with: arguments, message: message)
         case .youtube where arguments.count == 1:
             handleYoutube(with: arguments, message: message)
         case .fortune:
@@ -318,6 +320,23 @@ extension DiscordBot : CommandHandler {
 
     func handleFortune(with arguments: [String], message: DiscordMessage) {
         message.channel?.sendMessage(getFortune())
+    }
+
+    func handleIs(with arguments: [String], message: DiscordMessage) {
+        guard let guild = message.channel?.guild else {
+            message.channel?.sendMessage("Is this a guild channel m8?")
+
+            return
+        }
+
+        // Avoid evaluating every member.
+        let members = guild.members.lazy.map({ $0.value })
+        let randomNum = Int(arc4random_uniform(UInt32(guild.members.count - 1)))
+        let randomIndex = members.index(members.startIndex, offsetBy: randomNum)
+        let randomMember = members[randomIndex]
+        let name = randomMember.nick ?? randomMember.user.username
+
+        message.channel?.sendMessage("\(name) is \(arguments.joined(separator: " "))")
     }
 
     func handleJoin(with arguments: [String], message: DiscordMessage) {

@@ -22,8 +22,8 @@ func getSimpleWolframAnswer(forQuestion question: String) -> String {
     let url = "http://api.wolframalpha.com/v1/query?appid=\(wolfram)&input=\(escapedQuestion)&output=json"
 
     guard let json = doWolframRequest(withURL: url), let queryresult = json["queryresult"] as? [String: Any],
-            let success = queryresult["success"] as? Bool,
-            success, let pods = queryresult["pods"] as? [[String: Any]] else {
+            let success = queryresult["success"] as? Bool, success, let pods = queryresult["pods"] as? [[String: Any]]
+                else {
         return "Failed to get from wolfram"
     }
 

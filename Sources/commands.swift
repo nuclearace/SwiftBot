@@ -22,6 +22,7 @@ enum Command : String {
     case brutal = "brutal"
     case forecast = "forecast"
     case fortune = "fortune"
+    case `is` = "is"
     case join = "join"
     case leave = "leave"
     case roles = "myroles"
