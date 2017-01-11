@@ -25,7 +25,7 @@ let weather = ""
 let wolfram = ""
 let authorImage = URL(string: "https://avatars1.githubusercontent.com/u/1211049?v=3&s=460")
 let authorUrl = URL(string: "https://github.com/nuclearace")
-let sourceUrl = URL(string: "https://github.com/nuclearace/SwiftDiscord")!
+let sourceUrl = URL(string: "https://github.com/nuclearace/SwiftBot")!
 let ignoreGuilds = ["81384788765712384"]
 let userOverrides = ["104753987663712256"]
 let fortuneExists = FileManager.default.fileExists(atPath: "/usr/local/bin/fortune")
