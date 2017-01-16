@@ -244,7 +244,7 @@ class DiscordBot : DiscordClientDelegate {
         guard !(playingYoutube[guild.id] ?? true) else {
             youtubeQueue[guild.id]?.append((link, channelId))
 
-            return "Video Queued. \(youtubeQueue.count) videos in queue"
+            return "Video Queued. \(youtubeQueue[guild.id]?.count ?? -10000) videos in queue"
         }
 
         playingYoutube[guild.id] = true
