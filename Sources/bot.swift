@@ -58,7 +58,9 @@ class DiscordBot : DiscordClientDelegate {
         inVoiceChannel[engine.voiceState.guildId] = true
         playingYoutube[engine.voiceState.guildId] = false
 
-        guard var queue = youtubeQueue[engine.voiceState.guildId], !queue.isEmpty else { return }
+        guard var queue = youtubeQueue[engine.voiceState.guildId], !queue.isEmpty else {
+            return
+        }
 
         let video = queue.remove(at: 0)
         youtubeQueue[engine.voiceState.guildId] = queue
@@ -256,7 +258,7 @@ class DiscordBot : DiscordClientDelegate {
 
         youtube.terminationHandler = {[weak self] process in
             print("yt died")
-            self?.client.voiceEngines[channelId]?.encoder?.finishEncodingAndClose()
+            self?.client.voiceEngines[guild.id]?.encoder?.finishEncodingAndClose()
         }
 
         youtube.launch()
