@@ -32,10 +32,10 @@ class DiscordBot : DiscordClientDelegate {
 
     fileprivate let weatherLimiter = RateLimiter(tokensPerInterval: 10, interval: "minute")
     fileprivate let wolframLimiter = RateLimiter(tokensPerInterval: 67, interval: "day")
-    fileprivate var inVoiceChannel = false
-    fileprivate var playingYoutube = false
+    fileprivate var inVoiceChannel = [String: Bool]()
+    fileprivate var playingYoutube = [String: Bool]()
     fileprivate var youtube = EncoderProcess()
-    fileprivate var youtubeQueue = [QueuedVideo]()
+    fileprivate var youtubeQueue = [String: [QueuedVideo]]()
 
     init(token: DiscordToken) {
         client = DiscordClient(token: token, configuration: [.log(.verbose), .shards(2), .fillUsers, .pruneUsers])
@@ -55,12 +55,13 @@ class DiscordBot : DiscordClientDelegate {
     func client(_ client: DiscordClient, isReadyToSendVoiceWithEngine engine: DiscordVoiceEngine) {
         print("voice engine ready")
 
-        inVoiceChannel = true
-        playingYoutube = false
+        inVoiceChannel[engine.voiceState.guildId] = true
+        playingYoutube[engine.voiceState.guildId] = false
 
-        guard !youtubeQueue.isEmpty else { return }
+        guard var queue = youtubeQueue[engine.voiceState.guildId], !queue.isEmpty else { return }
 
-        let video = youtubeQueue.remove(at: 0)
+        let video = queue.remove(at: 0)
+        youtubeQueue[engine.voiceState.guildId] = queue
 
         client.sendMessage("Playing \(video.link)", to: video.channel)
 
@@ -237,23 +238,25 @@ class DiscordBot : DiscordClientDelegate {
     }
 
     func playYoutube(channelId: String, link: String) -> String {
-        guard inVoiceChannel else { return "Not in voice channel" }
-        guard !playingYoutube else {
-            youtubeQueue.append((link, channelId))
+        guard let guild = client.guildForChannel(channelId), inVoiceChannel[guild.id] ?? false else {
+            return "Not in voice channel"
+        }
+        guard !(playingYoutube[guild.id] ?? true) else {
+            youtubeQueue[guild.id]?.append((link, channelId))
 
             return "Video Queued. \(youtubeQueue.count) videos in queue"
         }
 
-        playingYoutube = true
+        playingYoutube[guild.id] = true
 
         youtube = EncoderProcess()
         youtube.launchPath = "/usr/local/bin/youtube-dl"
         youtube.arguments = ["-f", "bestaudio", "-q", "-o", "-", link]
-        youtube.standardOutput = client.voiceEngine!.requestFileHandleForWriting()!
+        youtube.standardOutput = client.voiceEngines[guild.id]!.requestFileHandleForWriting()!
 
         youtube.terminationHandler = {[weak self] process in
             print("yt died")
-            self?.client.voiceEngine?.encoder?.finishEncodingAndClose()
+            self?.client.voiceEngines[channelId]?.encoder?.finishEncodingAndClose()
         }
 
         youtube.launch()
@@ -346,11 +349,13 @@ extension DiscordBot : CommandHandler {
             return
         }
 
+        youtubeQueue[message.channel!.guild!.id] = []
+
         client.joinVoiceChannel(channel.id)
     }
 
     func handleLeave(with arguments: [String], message: DiscordMessage) {
-        client.leaveVoiceChannel()
+        client.leaveVoiceChannel(onGuild: message.channel?.guild?.id ?? "")
     }
 
     func handleForecast(with arguments: [String], message: DiscordMessage) {
@@ -386,7 +391,7 @@ extension DiscordBot : CommandHandler {
             youtube.terminate()
         }
 
-        client.voiceEngine?.requestNewEncoder()
+        client.voiceEngines[message.channel?.guild?.id ?? ""]?.requestNewEncoder()
     }
 
     func handleStats(with arguments: [String], message: DiscordMessage) {
