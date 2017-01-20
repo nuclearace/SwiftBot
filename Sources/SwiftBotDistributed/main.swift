@@ -1,5 +1,5 @@
 // The MIT License (MIT)
-// Copyright (c) 2016 Erik Little
+// Copyright (c) 2017 Erik Little
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 // documentation files (the "Software"), to deal in the Software without restriction, including without
@@ -20,38 +20,58 @@ import Dispatch
 import Foundation
 import struct SwiftDiscord.DiscordToken
 
-guard CommandLine.arguments.count == 6 else { fatalError("Not enough information to start") }
+#if os(Linux)
+typealias Process = Task
+#endif
 
-let token = DiscordToken(stringLiteral: CommandLine.arguments[1])
-let shardNum = Int(CommandLine.arguments[2])!
-let totalShards = Int(CommandLine.arguments[3])!
-let weather = CommandLine.arguments[4]
-let wolfram = CommandLine.arguments[5]
+typealias BotProcess = (process: Process, pipe: Pipe)
 
-let authorImage = URL(string: "https://avatars1.githubusercontent.com/u/1211049?v=3&s=460")
-let authorUrl = URL(string: "https://github.com/nuclearace")
-let sourceUrl = URL(string: "https://github.com/nuclearace/SwiftBot")!
-let ignoreGuilds = ["81384788765712384"]
-let userOverrides = ["104753987663712256"]
-let fortuneExists = FileManager.default.fileExists(atPath: "/usr/local/bin/fortune")
+let token = "Bot mysupersecretbottoken" as DiscordToken
+let weather = ""
+let wolfram = ""
+let numberOfShards = 2
+let botProcessLocation = FileManager.default.currentDirectoryPath + "/.build/debug/SwiftBot"
 
 let queue = DispatchQueue(label: "Async Read")
-let bot = DiscordBot(token: token, shardNum: shardNum, totalShards: totalShards)
+var bots = [Int: BotProcess]()
 
 func readAsync() {
     queue.async {
         guard let input = readLine(strippingNewline: true) else { return readAsync() }
 
         if input == "quit" {
-            bot.disconnect()
+            for (_, botProcess) in bots {
+                botProcess.pipe.fileHandleForWriting.write("quit\n".data(using: .utf8)!)
+            }
         }
 
         readAsync()
     }
 }
 
+func launchBot(withShardNum shardNum: Int) {
+    let botProcess = Process()
+    let pipe = Pipe()
+
+    botProcess.launchPath = botProcessLocation
+    botProcess.standardInput = pipe
+    botProcess.arguments = [String(describing: token), "\(shardNum)", "\(numberOfShards)", weather, wolfram]
+    botProcess.terminationHandler = {process in
+        print("Bot \(shardNum) died")
+    }
+
+    botProcess.launch()
+
+    bots[shardNum] = (botProcess, pipe)
+}
+
+print("Type 'quit' to stop")
+
 readAsync()
 
-bot.connect()
+for i in 0..<numberOfShards {
+    launchBot(withShardNum: i)
+}
 
 CFRunLoopRun()
+

@@ -37,8 +37,9 @@ class DiscordBot : DiscordClientDelegate {
     fileprivate var youtube = EncoderProcess()
     fileprivate var youtubeQueue = [String: [QueuedVideo]]()
 
-    init(token: DiscordToken) {
-        client = DiscordClient(token: token, configuration: [.log(.verbose), .shards(2), .fillUsers, .pruneUsers])
+    init(token: DiscordToken, shardNum: Int, totalShards: Int) {
+        client = DiscordClient(token: token, configuration: [.log(.verbose),
+            .singleShard(DiscordShardInformation(shardNum: shardNum, totalShards: totalShards)), .fillUsers, .pruneUsers])
         client.delegate = self
     }
 
