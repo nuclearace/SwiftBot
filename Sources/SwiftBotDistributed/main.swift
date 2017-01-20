@@ -34,6 +34,7 @@ let botProcessLocation = FileManager.default.currentDirectoryPath + "/.build/deb
 
 let queue = DispatchQueue(label: "Async Read")
 var bots = [Int: BotProcess]()
+var shutdownBots = 0
 
 func readAsync() {
     queue.async {
@@ -58,6 +59,11 @@ func launchBot(withShardNum shardNum: Int) {
     botProcess.arguments = [String(describing: token), "\(shardNum)", "\(numberOfShards)", weather, wolfram]
     botProcess.terminationHandler = {process in
         print("Bot \(shardNum) died")
+        shutdownBots += 1
+
+        if shutdownBots == bots.count {
+            exit(0)
+        }
     }
 
     botProcess.launch()
