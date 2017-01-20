@@ -42,6 +42,10 @@ class DiscordBot : DiscordClientDelegate {
         client.delegate = self
     }
 
+    func client(_ client: DiscordClient, didConnect reason: Bool) {
+        print("bot connected")
+    }
+
     func client(_ client: DiscordClient, didDisconnectWithReason reason: String) {
         print("bot disconnected")
 

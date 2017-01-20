@@ -20,7 +20,7 @@ import Dispatch
 import Foundation
 import struct SwiftDiscord.DiscordToken
 
-let token = "Bot mysupersecrettoken" as DiscordToken
+let token = "Bot somesupersecrettoken" as DiscordToken
 let weather = ""
 let wolfram = ""
 let authorImage = URL(string: "https://avatars1.githubusercontent.com/u/1211049?v=3&s=460")
