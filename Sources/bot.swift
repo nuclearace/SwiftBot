@@ -132,7 +132,7 @@ class DiscordBot : DiscordClientDelegate {
         var stats = [String: Any]()
 
         let guilds = client.guilds.map({ $0.value })
-        let channels = client.guilds.flatMap({ $0.value.channels.map({ $0.value }) })
+        let channels = guilds.flatMap({ $0.channels.map({ $0.value }) })
         let username = client.user!.username
         let guildNumber = guilds.count
         let numberOfTextChannels = channels.filter({ $0.type == .text }).count
