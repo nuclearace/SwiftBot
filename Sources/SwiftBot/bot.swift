@@ -29,6 +29,8 @@ typealias QueuedVideo = (link: String, channel: String)
 class DiscordBot : DiscordClientDelegate {
     let client: DiscordClient
     let startTime = Date()
+    let shardNum: Int
+    let totalShards: Int
 
     fileprivate let weatherLimiter = RateLimiter(tokensPerInterval: 10, interval: "minute")
     fileprivate let wolframLimiter = RateLimiter(tokensPerInterval: 67, interval: "day")
@@ -38,6 +40,9 @@ class DiscordBot : DiscordClientDelegate {
     fileprivate var youtubeQueue = [String: [QueuedVideo]]()
 
     init(token: DiscordToken, shardNum: Int, totalShards: Int) {
+        self.shardNum = shardNum
+        self.totalShards = totalShards
+
         client = DiscordClient(token: token, configuration: [.log(.verbose),
             .singleShard(DiscordShardInformation(shardNum: shardNum, totalShards: totalShards)), .fillUsers, .pruneUsers])
         client.delegate = self
@@ -144,7 +149,6 @@ class DiscordBot : DiscordClientDelegate {
         let numberOfVoiceChannels = channels.count - numberOfTextChannels
         let numberOfLoadedUsers = guilds.reduce(0, { $0 + $1.members.count })
         let totalUsers = guilds.reduce(0, { $0 + $1.memberCount })
-        let shards = client.shards
 
         stats["name"] = username
         stats["numberOfGuilds"] = guildNumber
@@ -152,8 +156,9 @@ class DiscordBot : DiscordClientDelegate {
         stats["numberOfVoiceChannels"] = numberOfVoiceChannels
         stats["numberOfLoadedUsers"] = numberOfLoadedUsers
         stats["totalNumberOfUsers"] =  totalUsers
-        stats["shards"] = shards
         stats["uptime"] = Date().timeIntervalSince(startTime)
+        stats["shardNum"] = shardNum
+        stats["shards"] = totalShards
 
         #if os(macOS)
         let name = mach_task_self_
@@ -234,6 +239,12 @@ class DiscordBot : DiscordClientDelegate {
 
         return []
     }
+
+    #if os(macOS)
+    func getStats(callback: @escaping ([String: Any]) -> Void) {
+        manager.requestStats(withCallback: callback)
+    }
+    #endif
 
     private func handleMessage(_ message: DiscordMessage) {
         guard message.content.hasPrefix("$") else { return }
@@ -402,7 +413,13 @@ extension DiscordBot : CommandHandler {
     }
 
     func handleStats(with arguments: [String], message: DiscordMessage) {
+        #if os(macOS)
+        getStats {stats in
+            message.channel?.sendMessage("", embed: createFormatMessage(withStats: stats))
+        }
+        #else
         message.channel?.sendMessage("", embed: createFormatMessage(withStats: calculateStats()))
+        #endif
     }
 
     func handleTopic(with arguments: [String], message: DiscordMessage) {

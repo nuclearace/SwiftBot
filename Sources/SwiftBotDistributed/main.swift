@@ -26,24 +26,49 @@ typealias Process = Task
 
 typealias BotProcess = (process: Process, pipe: Pipe)
 
-let token = "Bot mysupersecretbottoken" as DiscordToken
+let token = "Bot mysupersecrettoken" as DiscordToken
 let weather = ""
 let wolfram = ""
 let numberOfShards = 2
 let botProcessLocation = FileManager.default.currentDirectoryPath + "/.build/debug/SwiftBot"
+let botId = UUID()
 
 let queue = DispatchQueue(label: "Async Read")
 var bots = [Int: BotProcess]()
 var shutdownBots = 0
 
+#if os(macOS)
+class BotManager : NSObject {
+    let center = DistributedNotificationCenter.default()
+
+    deinit {
+        center.removeObserver(self)
+    }
+
+    func killBots() {
+        center.post(name: NSNotification.Name("die"), object: nil)
+    }
+}
+
+let manager = BotManager()
+#endif
+
+func killBots() {
+    #if os(macOS)
+    manager.killBots()
+    #else
+    for (_, botProcess) in bots {
+        botProcess.pipe.fileHandleForWriting.write("quit\n".data(using: .utf8)!)
+    }
+    #endif
+}
+
 func readAsync() {
     queue.async {
-        guard let input = readLine(strippingNewline: true) else { return readAsync() }
+        guard let input = readLine(strippingNewline: true) else { fatalError() }
 
         if input == "quit" {
-            for (_, botProcess) in bots {
-                botProcess.pipe.fileHandleForWriting.write("quit\n".data(using: .utf8)!)
-            }
+            killBots()
         }
 
         readAsync()
