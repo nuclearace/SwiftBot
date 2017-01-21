@@ -69,7 +69,7 @@ class ShardManager : NSObject {
     }
 
     func handleStat(_ notification: NSNotification) {
-        guard waitingForStats else { return } // We don't care
+        guard waitingForStats else { return }
 
         guard let object = notification.object as? String,
               let json = decodeJSON(object) as? [String: Any] else {
@@ -137,8 +137,9 @@ class ShardManager : NSObject {
             callback(fullStats)
         }
 
-        waitingForStats = false
         statsCallbacks.removeAll()
+        stats.removeAll()
+        waitingForStats = false
     }
 }
 
