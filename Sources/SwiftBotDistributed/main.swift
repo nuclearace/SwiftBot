@@ -18,7 +18,6 @@
 import CoreFoundation
 import Dispatch
 import Foundation
-import struct SwiftDiscord.DiscordToken
 
 #if os(Linux)
 typealias Process = Task
@@ -26,14 +25,15 @@ typealias Process = Task
 
 typealias BotProcess = (process: Process, pipe: Pipe)
 
-let token = "Bot mysupersecrettoken" as DiscordToken
+let token = "Bot mysupersecrettoken"
 let weather = ""
 let wolfram = ""
 let numberOfShards = 2
-let botProcessLocation = FileManager.default.currentDirectoryPath + "/.build/debug/SwiftBot"
+let botProcessLocation = FileManager.default.currentDirectoryPath + "/.build/release/SwiftBot"
 let botId = UUID()
 
 let queue = DispatchQueue(label: "Async Read")
+var killingBots = false
 var bots = [Int: BotProcess]()
 var shutdownBots = 0
 
@@ -54,6 +54,8 @@ let manager = BotManager()
 #endif
 
 func killBots() {
+    killingBots = true
+
     #if os(macOS)
     manager.killBots()
     #else
@@ -81,9 +83,18 @@ func launchBot(withShardNum shardNum: Int) {
 
     botProcess.launchPath = botProcessLocation
     botProcess.standardInput = pipe
-    botProcess.arguments = [String(describing: token), "\(shardNum)", "\(numberOfShards)", weather, wolfram]
+    botProcess.arguments = [token, "\(shardNum)", "\(numberOfShards)", weather, wolfram]
     botProcess.terminationHandler = {process in
         print("Bot \(shardNum) died")
+
+        guard killingBots else {
+            print("Restarting it")
+
+            launchBot(withShardNum: shardNum)
+
+            return
+        }
+
         shutdownBots += 1
 
         if shutdownBots == bots.count {
