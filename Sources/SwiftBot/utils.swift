@@ -179,3 +179,27 @@ func getRequestData(for request: URLRequest, callback: @escaping (Data?) -> Void
         callback(data!)
     }.resume()
 }
+
+func reduceStats(currentStats: [String: Any], otherStats: [String: Any]) -> [String: Any] {
+    var mutStats = currentStats
+
+    for (key, stat) in otherStats {
+        guard let cur = mutStats[key] else {
+            mutStats[key] = stat
+
+            continue
+        }
+
+        // Hacky, but trying to switch on the types fucks up, because on macOS JSONSerialization
+        // turns numbers into some generic __NSCFNumber type, which can cast to anything.
+        switch key {
+        case "shards":      fallthrough
+        case "name":        continue
+        case "uptime":      fallthrough
+        case "memory":      mutStats[key] = cur as! Double + (stat as! Double)
+        default:            mutStats[key] = cur as! Int + (stat as! Int)
+        }
+    }
+
+    return mutStats
+}
