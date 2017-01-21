@@ -18,6 +18,7 @@
 import Dispatch
 import Foundation
 import SwiftDiscord
+import Shared
 
 func createFormatMessage(withStats stats: [String: Any]) -> DiscordEmbed {
     func uptimeString(fromSeconds seconds: Double) -> String {
@@ -152,19 +153,6 @@ func createGetRequest(for string: String) -> URLRequest? {
     request.httpMethod = "GET"
 
     return request
-}
-
-func encodeJSON(_ object: Any) -> String? {
-    guard let data = try? JSONSerialization.data(withJSONObject: object) else { return nil }
-
-    return String(data: data, encoding: .utf8)
-}
-
-func decodeJSON(_ string: String) -> Any? {
-    guard let data = string.data(using: .utf8, allowLossyConversion: false) else { return nil }
-    guard let json = try? JSONSerialization.jsonObject(with: data, options: .mutableContainers) else { return nil }
-
-    return json
 }
 
 func getRequestData(for request: URLRequest, callback: @escaping (Data?) -> Void) {

@@ -18,6 +18,9 @@
 import CoreFoundation
 import Dispatch
 import Foundation
+import Shared
+import Socks
+import SocksCore
 import struct SwiftDiscord.DiscordToken
 
 guard CommandLine.arguments.count == 6 else { fatalError("Not enough information to start") }
@@ -35,44 +38,69 @@ let ignoreGuilds = ["81384788765712384"]
 let userOverrides = ["104753987663712256"]
 let fortuneExists = FileManager.default.fileExists(atPath: "/usr/local/bin/fortune")
 
-let queue = DispatchQueue(label: "Async Read")
 let bot = DiscordBot(token: token, shardNum: shardNum, totalShards: totalShards)
 
-#if os(macOS)
-class ShardManager : NSObject {
+enum BotEvent : String {
+    case die
+    case getStats
+    case stat
+}
+
+class ShardManager {
     let botId = UUID()
-    let center = DistributedNotificationCenter.default()
+    let queue = DispatchQueue(label: "Async Read")
+    let slaveClient: TCPClient
 
     var stats = [[String: Any]]()
     var statsCallbacks = [([String: Any]) -> Void]()
     var waitingForStats = false
 
-    override init() {
-        super.init()
-
-        center.addObserver(self, selector: #selector(ShardManager.killBot(_:)),
-                           name: NSNotification.Name("die"), object: nil)
-        center.addObserver(self, selector: #selector(ShardManager.getStats(_:)),
-                           name: NSNotification.Name("stats"), object: nil)
-        center.addObserver(self, selector: #selector(ShardManager.handleStat(_:)),
-                           name: NSNotification.Name("stat"), object: nil)
+    init() throws {
+        slaveClient = try TCPClient(address: InternetAddress(hostname: "127.0.0.1", port: 42343))
     }
 
-    deinit {
-        center.removeObserver(self)
+    func die() {
+        do {
+            try slaveClient.close()
+        } catch {
+            print("Error closing #\(shardNum)")
+        }
+
+        exit(0)
     }
 
-    func getStats(_ notification: NSNotification) {
-        guard let json = encodeJSON(bot.calculateStats()) else { return }
+    func getStats() {
+        let data: [String: Any] = [
+            "method": "stat",
+            "params": bot.calculateStats(),
+            "id": shardNum
+        ]
 
-        center.post(name: NSNotification.Name("stat"), object: json)
+        do {
+            try dispatchToMaster(object: data)
+        } catch {
+            print("Error trying to send stats")
+        }
     }
 
-    func handleStat(_ notification: NSNotification) {
+    func handleMasterEvent(socket: TCPInternetSocket) throws {
+        let messageData = try getDataFromSocket(socket)
+
+        guard let stringJSON = String(data: Data(bytes: messageData), encoding: .utf8),
+              let json = decodeJSON(stringJSON) as? [String: Any],
+              let eventString = json["method"] as? String,
+              let event = BotEvent(rawValue: eventString) else { return }
+
+        switch event {
+        case .die:          killBot()
+        case .getStats:     getStats()
+        case .stat:         handleStat(stat: json)
+        }
+    }
+
+    func handleStat(stat: [String: Any]) {
         guard waitingForStats else { return }
-
-        guard let object = notification.object as? String,
-              let json = decodeJSON(object) as? [String: Any] else {
+        guard let jsonStats = stat["params"] as? [String: Any] else {
             stats.append([:])
 
             if stats.count == totalShards {
@@ -82,17 +110,29 @@ class ShardManager : NSObject {
             return
         }
 
-        stats.append(json)
+        stats.append(jsonStats)
 
         guard stats.count == totalShards else { return }
 
         sendStats()
     }
 
-    func killBot(_ notification: NSNotification) {
-        print("Got notification that we should die")
+    func identify() throws {
+        let buf = UnsafeMutableRawBufferPointer.allocate(count: 4)
+        buf.storeBytes(of: UInt32(shardNum).bigEndian, as: UInt32.self)
 
-        center.removeObserver(self)
+        try slaveClient.send(bytes: Array(buf))
+        try slaveClient.socket.startWatching(on: DispatchQueue.main) {
+            do {
+               try self.handleMasterEvent(socket: self.slaveClient.socket)
+            } catch {
+                print("Error reading on bot \(shardNum)")
+            }
+        }
+    }
+
+    func killBot() {
+        print("Got notification that we should die")
 
         bot.disconnect()
     }
@@ -100,10 +140,24 @@ class ShardManager : NSObject {
     func requestStats(withCallback callback: @escaping ([String: Any]) -> Void) {
         statsCallbacks.append(callback)
 
-        guard !waitingForStats else { return }
+        // guard !waitingForStats else { return }
 
         waitingForStats = true
-        center.post(name: NSNotification.Name("stats"), object: nil)
+
+        do {
+            try dispatchToMaster(object: [
+                "method": "requestStats",
+                "params": [:],
+                "id": shardNum
+            ])
+        } catch {
+            print("error sending")
+        }
+
+    }
+
+    private func dispatchToMaster(object: [String: Any]) throws {
+        try slaveClient.send(bytes: encodeDataPacket(object))
     }
 
     func sendStats() {
@@ -119,22 +173,8 @@ class ShardManager : NSObject {
     }
 }
 
-let manager = ShardManager()
-#endif
-
-func readAsync() {
-    queue.async {
-        guard let input = readLine(strippingNewline: true) else { fatalError() }
-
-        if input == "quit" {
-            bot.disconnect()
-        }
-
-        readAsync()
-    }
-}
-
-readAsync()
+let manager = try ShardManager()
+try manager.identify()
 
 bot.connect()
 

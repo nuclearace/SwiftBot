@@ -18,12 +18,15 @@
 import CoreFoundation
 import Dispatch
 import Foundation
+import Shared
+import SocksCore
+import SwiftRateLimiter
 
 #if os(Linux)
 typealias Process = Task
 #endif
 
-typealias BotProcess = (process: Process, pipe: Pipe)
+typealias BotProcess = (process: Process, socket: TCPInternetSocket?)
 
 let token = "Bot mysupersecrettoken"
 let weather = ""
@@ -31,89 +34,179 @@ let wolfram = ""
 let numberOfShards = 2
 let botProcessLocation = FileManager.default.currentDirectoryPath + "/.build/release/SwiftBot"
 let botId = UUID()
+let weatherLimiter = RateLimiter(tokensPerInterval: 10, interval: "minute")
+let wolframLimiter = RateLimiter(tokensPerInterval: 67, interval: "day")
 
 let queue = DispatchQueue(label: "Async Read")
-var killingBots = false
-var bots = [Int: BotProcess]()
-var shutdownBots = 0
 
-#if os(macOS)
-class BotManager : NSObject {
-    let center = DistributedNotificationCenter.default()
+enum BotEvent : String {
+    case requestStats
+    case stat
+}
 
-    deinit {
-        center.removeObserver(self)
+class BotManager {
+    let acceptQueue = DispatchQueue(label: "Accept Queue")
+    let botQueue = DispatchQueue(label: "Bot Queue")
+    let masterServer: TCPInternetSocket
+
+    var bots = [Int: BotProcess]()
+    var killingBots = false
+    var shutdownBots = 0
+
+    init() throws {
+        masterServer = try TCPInternetSocket(address: InternetAddress(hostname: "127.0.0.1", port: 42343))
+    }
+
+    func acceptConnection() {
+        acceptQueue.async {
+            print("Waiting for a new connection")
+
+            do {
+                try self.attachSocketToBot(try self.masterServer.accept())
+                self.acceptConnection()
+            } catch {
+                // TODO see how we can recover. Kill bots? Tell them to reconnect?
+                print("Error accepting connections")
+            }
+        }
+    }
+
+    func attachSocketToBot(_ socket: TCPInternetSocket) throws {
+        print("Got new connection")
+
+        // Before a bot starts up, it should identify itself
+        let botNumData = try socket.recv(maxBytes: 4).map(Int.init)
+        let botNum = botNumData[0] << 24 | botNumData[1] << 16 | botNumData[2] << 8 | botNumData[3]
+
+        print("Bot \(botNum) identified")
+
+        bots[Int(botNum)]?.socket = socket
+
+        try socket.startWatching(on: DispatchQueue.main) {
+            print("Bot \(botNum) has something waiting")
+
+            do {
+               try self.handleBotEvent(socket: socket)
+            } catch {
+                print("Error reading from bot \(botNum)")
+            }
+        }
+    }
+
+    func broadcast(event: String, params: [String: Any]) throws {
+        let eventData = encodeDataPacket([
+            "method": event,
+            "params": params,
+            "id": -1
+        ])
+
+        for (_, bot) in bots {
+            print("sending to bot")
+            try bot.socket?.send(data: eventData)
+        }
     }
 
     func killBots() {
-        center.post(name: NSNotification.Name("die"), object: nil)
+        killingBots = true
+
+
+        do {
+            try broadcast(event: "die", params: [:])
+            try masterServer.close()
+        } catch {
+            print("couldn't close server")
+        }
+    }
+
+    func launchBot(withShardNum shardNum: Int) {
+        let botProcess = Process()
+
+        botProcess.launchPath = botProcessLocation
+        botProcess.arguments = [token, "\(shardNum)", "\(numberOfShards)", weather, wolfram]
+        botProcess.terminationHandler = {process in
+            print("Bot \(shardNum) died")
+
+            guard self.killingBots else {
+                print("Restarting it")
+
+                // self.launchBot(withShardNum: shardNum)
+
+                return
+            }
+
+            self.shutdownBots += 1
+
+            if self.shutdownBots == self.bots.count {
+                exit(0)
+            }
+        }
+
+        botProcess.launch()
+
+        bots[shardNum] = (botProcess, nil)
+    }
+
+    func handleBotEvent(socket: TCPInternetSocket) throws {
+        let messageData = try getDataFromSocket(socket)
+
+        guard let stringJSON = String(data: Data(bytes: messageData), encoding: .utf8),
+              let json = decodeJSON(stringJSON) as? [String: Any],
+              let eventString = json["method"] as? String,
+              let event = BotEvent(rawValue: eventString) else { return }
+
+        switch event {
+        case .requestStats:     try broadcast(event: "getStats", params: [:])
+        case .stat:             try handleStat(json)
+        }
+    }
+
+    func handleStat(_ json: [String: Any]) throws {
+        guard let stat = json["params"] as? [String: Any] else { return }
+
+        try broadcast(event: "stat", params: stat)
+    }
+
+    func setupServer() throws {
+        print("Starting to listen")
+
+        try masterServer.bind()
+        try masterServer.listen()
+
+        print("starting to accept connections")
+
+        acceptConnection()
+    }
+
+    func start() {
+        for i in 0..<numberOfShards {
+            launchBot(withShardNum: i)
+        }
     }
 }
 
-let manager = BotManager()
-#endif
-
-func killBots() {
-    killingBots = true
-
-    #if os(macOS)
-    manager.killBots()
-    #else
-    for (_, botProcess) in bots {
-        botProcess.pipe.fileHandleForWriting.write("quit\n".data(using: .utf8)!)
-    }
-    #endif
-}
+let manager = try BotManager()
 
 func readAsync() {
     queue.async {
         guard let input = readLine(strippingNewline: true) else { fatalError() }
 
         if input == "quit" {
-            killBots()
+            manager.killBots()
         }
 
         readAsync()
     }
 }
 
-func launchBot(withShardNum shardNum: Int) {
-    let botProcess = Process()
-    let pipe = Pipe()
-
-    botProcess.launchPath = botProcessLocation
-    botProcess.standardInput = pipe
-    botProcess.arguments = [token, "\(shardNum)", "\(numberOfShards)", weather, wolfram]
-    botProcess.terminationHandler = {process in
-        print("Bot \(shardNum) died")
-
-        guard killingBots else {
-            print("Restarting it")
-
-            launchBot(withShardNum: shardNum)
-
-            return
-        }
-
-        shutdownBots += 1
-
-        if shutdownBots == bots.count {
-            exit(0)
-        }
-    }
-
-    botProcess.launch()
-
-    bots[shardNum] = (botProcess, pipe)
-}
-
 print("Type 'quit' to stop")
 
 readAsync()
 
-for i in 0..<numberOfShards {
-    launchBot(withShardNum: i)
-}
+print("Setting up master server")
+
+try manager.setupServer()
+
+manager.start()
 
 CFRunLoopRun()
 

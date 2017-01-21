@@ -49,13 +49,13 @@ class DiscordBot : DiscordClientDelegate {
     }
 
     func client(_ client: DiscordClient, didConnect reason: Bool) {
-        print("bot connected")
+        print("Shard #\(shardNum) connected")
     }
 
     func client(_ client: DiscordClient, didDisconnectWithReason reason: String) {
-        print("bot disconnected")
+        print("Shard #\(shardNum) disconnected")
 
-        exit(0)
+        manager.die()
     }
 
     func client(_ client: DiscordClient, didCreateMessage message: DiscordMessage) {
@@ -240,11 +240,9 @@ class DiscordBot : DiscordClientDelegate {
         return []
     }
 
-    #if os(macOS)
     func getStats(callback: @escaping ([String: Any]) -> Void) {
         manager.requestStats(withCallback: callback)
     }
-    #endif
 
     private func handleMessage(_ message: DiscordMessage) {
         guard message.content.hasPrefix("$") else { return }
