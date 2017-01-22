@@ -32,6 +32,7 @@ let fortuneExists = FileManager.default.fileExists(atPath: "/usr/local/bin/fortu
 let bot = DiscordBot(token: token, shardNum: shardNum, totalShards: totalShards)
 
 enum BotCall : String {
+    case connect
     case die
     case getStats
 }
@@ -39,6 +40,8 @@ enum BotCall : String {
 class ShardManager : RemoteCallable {
     let queue = DispatchQueue(label: "Async Read")
     let shardNum: Int
+
+    var connectId = -1
     var currentCall = 0
     var socket: TCPInternetSocket?
     var statsCallbacks = [([String: Any]) -> Void]()
@@ -54,6 +57,15 @@ class ShardManager : RemoteCallable {
     func clearStats() {
         waitingForStats = false
         statsCallbacks.removeAll()
+    }
+
+    func connect(id: Int, waitTime wait: Int?) {
+        let wait = wait ?? 5
+        connectId = id
+
+        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + Double(wait)) {
+            bot.connect()
+        }
     }
 
     func die() {
@@ -100,6 +112,7 @@ class ShardManager : RemoteCallable {
 
         switch (event, id) {
         case (.die, _):               killBot()
+        case let (.connect, id?):     connect(id: id, waitTime: params["wait"] as? Int)
         case let (.getStats, id?):    getStats(id: id)
         default:                      throw SwiftBotError.invalidCall
         }
@@ -153,7 +166,5 @@ class ShardManager : RemoteCallable {
 
 let manager = try ShardManager(shardNum: shardNum)
 try manager.identify()
-
-bot.connect()
 
 CFRunLoopRun()

@@ -49,6 +49,8 @@ class DiscordBot : DiscordClientDelegate {
 
     func client(_ client: DiscordClient, didConnect reason: Bool) {
         print("Shard #\(shardNum) connected")
+
+        manager.sendResult(true, for: manager.connectId)
     }
 
     func client(_ client: DiscordClient, didDisconnectWithReason reason: String) {

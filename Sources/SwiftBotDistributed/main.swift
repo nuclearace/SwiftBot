@@ -60,7 +60,7 @@ class BotProcess : RemoteCallable {
         self.socket = socket
 
         try socket.startWatching(on: DispatchQueue.main) {
-            print("Bot \(self.shardNum) has something waiting")
+            print("Shard #\(self.shardNum) has something waiting")
 
             do {
                try self.handleMessage()
@@ -79,6 +79,7 @@ class BotManager {
     let acceptQueue = DispatchQueue(label: "Accept Queue")
     let masterServer: TCPInternetSocket
 
+    var authenticatedBots = 0
     var bots = [Int: BotProcess]()
     var killingBots = false
     var shutdownBots = 0
@@ -96,9 +97,8 @@ class BotManager {
             do {
                 try self.attachSocketToBot(try self.masterServer.accept())
                 self.acceptConnection()
-            } catch {
-                // TODO see how we can recover. Kill bots? Tell them to reconnect?
-                print("Error accepting connections")
+            } catch let err {
+                print("Error accepting connection: \(err)")
             }
         }
     }
@@ -111,16 +111,41 @@ class BotManager {
               let json = decodeJSON(stringJSON) as? [String: Any],
               let shard = json["shard"] as? Int,
               let pw = json["pw"] as? String,
-              pw == "\(authToken)\(shard)".sha512() else { throw SwiftBotError.authenticationFailure }
+              pw == "\(authToken)\(shard)".sha512() else {
+                try socket.close()
+                throw SwiftBotError.authenticationFailure
+            }
 
         print("Shard #\(shard) identified")
 
         try bots[shard]?.attachSocket(socket)
+
+        authenticatedBots += 1
+
+        connect()
     }
 
-    func callAll(_ method: String, params: [String: Any] = [:], complete: ((Any) throws -> Void)? = nil) throws {
+    func callAll(_ method: String, params: [String: Any] = [:], complete: ((Any) throws -> Void)? = nil) {
         for (_, bot) in bots {
             bot.call(method, withParams: params, onComplete: complete)
+        }
+    }
+
+    func connect() {
+        guard authenticatedBots == numberOfShards else { return }
+
+        print("Telling all shards to connect")
+
+        var wait = 0
+
+        for (shardNum, bot) in bots {
+            bot.call("connect", withParams: ["wait": wait]) {success in
+                guard let success = success as? Bool else { return }
+
+                print("Shard #\(shardNum) connected: \(success)")
+            }
+
+            wait += 5
         }
     }
 
@@ -128,7 +153,7 @@ class BotManager {
         killingBots = true
 
         do {
-            try callAll("die")
+            callAll("die")
             try masterServer.close()
         } catch {
             print("couldn't close server")
@@ -146,7 +171,9 @@ class BotManager {
             guard self.killingBots else {
                 print("Restarting it")
 
-                self.launchBot(withShardNum: shardNum)
+                DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 5) {
+                    self.launchBot(withShardNum: shardNum)
+                }
 
                 return
             }
@@ -197,7 +224,7 @@ class BotManager {
         }
 
         switch (call, id) {
-        case let (.getStats, id?):                  try callAll("getStats", complete: _handleStat(id))
+        case let (.getStats, id?):                  callAll("getStats", complete: _handleStat(id))
         case let (.removeWeatherToken, id?):        tryRemoveToken(weatherLimiter, id)
         case let (.removeWolframToken, id?):        tryRemoveToken(wolframLimiter, id)
         default:                                    throw SwiftBotError.invalidCall
