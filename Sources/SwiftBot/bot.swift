@@ -415,13 +415,9 @@ extension DiscordBot : CommandHandler {
     }
 
     func handleStats(with arguments: [String], message: DiscordMessage) {
-        #if os(macOS)
         getStats {stats in
             message.channel?.sendMessage("", embed: createFormatMessage(withStats: stats))
         }
-        #else
-        message.channel?.sendMessage("", embed: createFormatMessage(withStats: calculateStats()))
-        #endif
     }
 
     func handleTopic(with arguments: [String], message: DiscordMessage) {
