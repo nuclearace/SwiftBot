@@ -28,7 +28,6 @@ typealias Process = Task
 #endif
 
 let botProcessLocation = FileManager.default.currentDirectoryPath + "/.build/release/SwiftBot"
-let botId = UUID()
 let weatherLimiter = RateLimiter(tokensPerInterval: 10, interval: "minute", firesImmediatly: true)
 let wolframLimiter = RateLimiter(tokensPerInterval: 67, interval: "day", firesImmediatly: true)
 
@@ -40,14 +39,13 @@ enum BotCall : String {
     case removeWolframToken
 }
 
-class BotProcess : RemoteCallable {
+class ShardProcess : RemoteCallable {
     let process: Process
     let shardNum: Int
 
     weak var manager: BotManager?
-    var socket: TCPInternetSocket?
-
     var currentCall = 0
+    var socket: TCPInternetSocket?
     var waitingCalls = [Int: (Any) throws -> Void]()
 
     init(process: Process, manager: BotManager, shardNum: Int) {
@@ -79,10 +77,11 @@ class BotManager {
     let acceptQueue = DispatchQueue(label: "Accept Queue")
     let masterServer: TCPInternetSocket
 
-    var authenticatedBots = 0
-    var bots = [Int: BotProcess]()
-    var killingBots = false
-    var shutdownBots = 0
+    var authenticatedShards = 0
+    var shards = [Int: ShardProcess]()
+    var connected = false
+    var killingShards = false
+    var shutdownShards = 0
     var stats = [[String: Any]]()
     var waitingForStats = false
 
@@ -118,78 +117,86 @@ class BotManager {
 
         print("Shard #\(shard) identified")
 
-        try bots[shard]?.attachSocket(socket)
+        try shards[shard]?.attachSocket(socket)
 
-        authenticatedBots += 1
+        authenticatedShards += 1
 
-        connect()
+        if !connected {
+            connect()
+        } else {
+            connect(shard: shard)
+        }
     }
 
     func callAll(_ method: String, params: [String: Any] = [:], complete: ((Any) throws -> Void)? = nil) {
-        for (_, bot) in bots {
-            bot.call(method, withParams: params, onComplete: complete)
+        for (_, shard) in shards {
+            shard.call(method, withParams: params, onComplete: complete)
         }
     }
 
     func connect() {
-        guard authenticatedBots == numberOfShards else { return }
+        guard authenticatedShards == numberOfShards, !connected else { return }
 
         print("Telling all shards to connect")
 
+        connected = true
         var wait = 0
 
-        for (shardNum, bot) in bots {
-            bot.call("connect", withParams: ["wait": wait]) {success in
-                guard let success = success as? Bool else { return }
-
-                print("Shard #\(shardNum) connected: \(success)")
-            }
+        for i in 0..<numberOfShards {
+            connect(shard: i, wait: wait)
 
             wait += 5
         }
     }
 
-    func killBots() {
-        killingBots = true
+    func connect(shard: Int, wait: Int = 3) {
+        print("Commanding shard #\(shard) to connect")
 
-        do {
-            callAll("die")
-            try masterServer.close()
-        } catch {
-            print("couldn't close server")
+        shards[shard]?.call("connect", withParams: ["wait": wait]) {success in
+            guard let success = success as? Bool else { return }
+
+            print("Shard #\(shard) connected: \(success)")
         }
     }
 
-    func launchBot(withShardNum shardNum: Int) {
-        let botProcess = Process()
+    func kill(shard: Int) {
+        authenticatedShards -= 1
 
-        botProcess.launchPath = botProcessLocation
-        botProcess.arguments = ["\(shardNum)", "\(numberOfShards)"]
-        botProcess.terminationHandler = {process in
-            print("Bot \(shardNum) died")
+        print("Commanding shard #\(shard) to die")
 
-            guard self.killingBots else {
+        shards[shard]?.call("die")
+    }
+
+    func launchShard(_ shardNum: Int) {
+        let shardProccess = Process()
+
+        shardProccess.launchPath = botProcessLocation
+        shardProccess.arguments = ["\(shardNum)", "\(numberOfShards)"]
+        shardProccess.terminationHandler = {process in
+            print("Shard #\(shardNum) died")
+
+            guard self.killingShards else {
                 print("Restarting it")
 
                 DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 5) {
-                    self.launchBot(withShardNum: shardNum)
+                    self.launchShard(shardNum)
                 }
 
                 return
             }
 
-            self.shutdownBots += 1
+            self.shutdownShards += 1
 
-            if self.shutdownBots == self.bots.count {
+            if self.shutdownShards == self.shards.count {
                 exit(0)
             }
         }
 
-        botProcess.launch()
+        shardProccess.launch()
 
-        bots[shardNum] = BotProcess(process: botProcess,
-                                    manager: self,
-                                    shardNum: shardNum)
+        shards[shardNum] = ShardProcess(process: shardProccess,
+                                        manager: self,
+                                        shardNum: shardNum)
     }
 
     func handleRemoteCall(_ method: String, withParams params: [String: Any], id: Int?, shardNum: Int) throws {
@@ -214,13 +221,13 @@ class BotManager {
         func tryRemoveToken(_ limiter: RateLimiter, _ id: Int) {
             limiter.removeTokens(1) {err, tokens in
                 guard let tokens = tokens, tokens > 0 else {
-                    self.bots[shardNum]?.sendResult(false, for: id)
+                    self.shards[shardNum]?.sendResult(false, for: id)
 
                     return
                 }
-            }
 
-            self.bots[shardNum]?.sendResult(true, for: id)
+                self.shards[shardNum]?.sendResult(true, for: id)
+            }
         }
 
         switch (call, id) {
@@ -231,8 +238,15 @@ class BotManager {
         }
     }
 
+    func restart() {
+        connected = false
+        authenticatedShards = 0
+
+        callAll("die")
+    }
+
     func sendStats(_ id: Int, shardNum: Int) {
-        bots[shardNum]?.sendResult(stats.reduce([:], reduceStats), for: id)
+        shards[shardNum]?.sendResult(stats.reduce([:], reduceStats), for: id)
 
         waitingForStats = false
         stats.removeAll()
@@ -249,9 +263,20 @@ class BotManager {
         acceptConnection()
     }
 
+    func shutdown() {
+        killingShards = true
+
+        do {
+            callAll("die")
+            try masterServer.close()
+        } catch {
+            print("couldn't close server")
+        }
+    }
+
     func start() {
         for i in 0..<numberOfShards {
-            launchBot(withShardNum: i)
+            launchShard(i)
         }
     }
 }
@@ -261,9 +286,16 @@ let manager = try BotManager()
 func readAsync() {
     queue.async {
         guard let input = readLine(strippingNewline: true) else { fatalError() }
+        let command = input.components(separatedBy: " ")
 
-        if input == "quit" {
-            manager.killBots()
+        if command[0] == "quit" {
+            manager.shutdown()
+        } else if command[0] == "kill", command.count == 3  {
+            if command[1] == "all" {
+                manager.restart()
+            } else if command[1] == "shard", let shardNum = Int(command[2]) {
+                manager.kill(shard: shardNum)
+            }
         }
 
         readAsync()

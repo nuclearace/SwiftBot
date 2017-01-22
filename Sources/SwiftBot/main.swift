@@ -60,7 +60,7 @@ class ShardManager : RemoteCallable {
     }
 
     func connect(id: Int, waitTime wait: Int?) {
-        let wait = wait ?? 5
+        let wait = wait ?? 1
         connectId = id
 
         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + Double(wait)) {
