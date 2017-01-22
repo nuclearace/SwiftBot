@@ -26,8 +26,6 @@ import SwiftRateLimiter
 typealias Process = Task
 #endif
 
-typealias BotProcess = (process: Process, socket: TCPInternetSocket?)
-
 let token = "Bot mysupersecrettoken"
 let weather = ""
 let wolfram = ""
@@ -39,9 +37,43 @@ let wolframLimiter = RateLimiter(tokensPerInterval: 67, interval: "day")
 
 let queue = DispatchQueue(label: "Async Read")
 
-enum BotEvent : String {
-    case requestStats
-    case stat
+enum BotCall : String {
+    case getStats
+}
+
+class BotProcess : RemoteCallable {
+    let process: Process
+    let shardNum: Int
+
+    weak var manager: BotManager?
+    var socket: TCPInternetSocket?
+
+    var currentCall = 0
+    var waitingCalls = [Int: (Any) throws -> Void]()
+
+    init(process: Process, manager: BotManager, shardNum: Int) {
+        self.process = process
+        self.manager = manager
+        self.shardNum = shardNum
+    }
+
+    func attachSocket(_ socket: TCPInternetSocket) throws {
+        self.socket = socket
+
+        try socket.startWatching(on: DispatchQueue.main) {
+            print("Bot \(self.shardNum) has something waiting")
+
+            do {
+               try self.handleMessage()
+            } catch let err {
+                print("Error reading from shard #\(self.shardNum) \(err)")
+            }
+        }
+    }
+
+    func handleRemoteCall(_ method: String, withParams params: [String: Any], id: Int?) throws {
+        try manager?.handleRemoteCall(method, withParams: params, id: id, shardNum: shardNum)
+    }
 }
 
 class BotManager {
@@ -52,6 +84,8 @@ class BotManager {
     var bots = [Int: BotProcess]()
     var killingBots = false
     var shutdownBots = 0
+    var stats = [[String: Any]]()
+    var waitingForStats = false
 
     init() throws {
         masterServer = try TCPInternetSocket(address: InternetAddress(hostname: "127.0.0.1", port: 42343))
@@ -78,40 +112,22 @@ class BotManager {
         let botNumData = try socket.recv(maxBytes: 4).map(Int.init)
         let botNum = botNumData[0] << 24 | botNumData[1] << 16 | botNumData[2] << 8 | botNumData[3]
 
-        print("Bot \(botNum) identified")
+        print("Shard #\(botNum) identified")
 
-        bots[Int(botNum)]?.socket = socket
-
-        try socket.startWatching(on: DispatchQueue.main) {
-            print("Bot \(botNum) has something waiting")
-
-            do {
-               try self.handleBotEvent(socket: socket)
-            } catch {
-                print("Error reading from bot \(botNum)")
-            }
-        }
+        try bots[Int(botNum)]?.attachSocket(socket)
     }
 
-    func broadcast(event: String, params: [String: Any]) throws {
-        let eventData = encodeDataPacket([
-            "method": event,
-            "params": params,
-            "id": -1
-        ])
-
+    func callAll(_ method: String, params: [String: Any] = [:], complete: ((Any) throws -> Void)? = nil) throws {
         for (_, bot) in bots {
-            print("sending to bot")
-            try bot.socket?.send(data: eventData)
+            bot.call(method, withParams: params, onComplete: complete)
         }
     }
 
     func killBots() {
         killingBots = true
 
-
         do {
-            try broadcast(event: "die", params: [:])
+            try callAll("die")
             try masterServer.close()
         } catch {
             print("couldn't close server")
@@ -143,27 +159,41 @@ class BotManager {
 
         botProcess.launch()
 
-        bots[shardNum] = (botProcess, nil)
+        bots[shardNum] = BotProcess(process: botProcess,
+                                    manager: self,
+                                    shardNum: shardNum)
     }
 
-    func handleBotEvent(socket: TCPInternetSocket) throws {
-        let messageData = try getDataFromSocket(socket)
+    func handleRemoteCall(_ method: String, withParams params: [String: Any], id: Int?, shardNum: Int) throws {
+        guard let call = BotCall(rawValue: method) else { throw SwiftBotError.invalidCall }
 
-        guard let stringJSON = String(data: Data(bytes: messageData), encoding: .utf8),
-              let json = decodeJSON(stringJSON) as? [String: Any],
-              let eventString = json["method"] as? String,
-              let event = BotEvent(rawValue: eventString) else { return }
+        func _handleStat(_ id: Int) -> (Any) throws -> Void {
+            waitingForStats = true
 
-        switch event {
-        case .requestStats:     try broadcast(event: "getStats", params: [:])
-        case .stat:             try handleStat(json)
+            return {stat in
+                try self.handleStat(stat, id: id, shardNum: shardNum)
+            }
+        }
+
+        switch (call, id) {
+        case let (.getStats, id?):     try callAll("getStats", complete: _handleStat(id))
+        default:                       throw SwiftBotError.invalidCall
         }
     }
 
-    func handleStat(_ json: [String: Any]) throws {
-        guard let stat = json["params"] as? [String: Any] else { return }
+    func handleStat(_ json: Any, id: Int, shardNum: Int) throws {
+        guard waitingForStats, let stat = json as? [String: Any] else {
+            throw SwiftBotError.invalidArgument
+        }
 
-        try broadcast(event: "stat", params: stat)
+        stats.append(stat)
+
+        guard stats.count == numberOfShards else { return }
+
+        bots[shardNum]?.sendResult(stats.reduce([:], reduceStats), for: id)
+
+        waitingForStats = false
+        stats.removeAll()
     }
 
     func setupServer() throws {

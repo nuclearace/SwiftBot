@@ -40,28 +40,34 @@ let fortuneExists = FileManager.default.fileExists(atPath: "/usr/local/bin/fortu
 
 let bot = DiscordBot(token: token, shardNum: shardNum, totalShards: totalShards)
 
-enum BotEvent : String {
+enum BotCall : String {
     case die
     case getStats
-    case stat
 }
 
-class ShardManager {
-    let botId = UUID()
+class ShardManager : RemoteCallable {
     let queue = DispatchQueue(label: "Async Read")
-    let slaveClient: TCPClient
-
-    var stats = [[String: Any]]()
+    let shardNum: Int
+    var currentCall = 0
+    var socket: TCPInternetSocket?
     var statsCallbacks = [([String: Any]) -> Void]()
+    var waitingCalls =  [Int: (Any) throws -> Void]()
     var waitingForStats = false
 
-    init() throws {
-        slaveClient = try TCPClient(address: InternetAddress(hostname: "127.0.0.1", port: 42343))
+    init(shardNum: Int) throws {
+        self.shardNum = shardNum
+        socket = try TCPInternetSocket(address: InternetAddress(hostname: "127.0.0.1", port: 42343))
+        try socket?.connect()
+    }
+
+    func clearStats() {
+        waitingForStats = false
+        statsCallbacks.removeAll()
     }
 
     func die() {
         do {
-            try slaveClient.close()
+            try socket?.close()
         } catch {
             print("Error closing #\(shardNum)")
         }
@@ -69,11 +75,10 @@ class ShardManager {
         exit(0)
     }
 
-    func getStats() {
+    func getStats(id: Int) {
         let data: [String: Any] = [
-            "method": "stat",
-            "params": bot.calculateStats(),
-            "id": shardNum
+            "result": bot.calculateStats(),
+            "id": id
         ]
 
         do {
@@ -83,51 +88,27 @@ class ShardManager {
         }
     }
 
-    func handleMasterEvent(socket: TCPInternetSocket) throws {
-        let messageData = try getDataFromSocket(socket)
-
-        guard let stringJSON = String(data: Data(bytes: messageData), encoding: .utf8),
-              let json = decodeJSON(stringJSON) as? [String: Any],
-              let eventString = json["method"] as? String,
-              let event = BotEvent(rawValue: eventString) else { return }
-
-        switch event {
-        case .die:          killBot()
-        case .getStats:     getStats()
-        case .stat:         handleStat(stat: json)
-        }
-    }
-
-    func handleStat(stat: [String: Any]) {
-        guard waitingForStats else { return }
-        guard let jsonStats = stat["params"] as? [String: Any] else {
-            stats.append([:])
-
-            if stats.count == totalShards {
-                sendStats()
-            }
-
-            return
-        }
-
-        stats.append(jsonStats)
-
-        guard stats.count == totalShards else { return }
-
-        sendStats()
-    }
-
     func identify() throws {
         let buf = UnsafeMutableRawBufferPointer.allocate(count: 4)
         buf.storeBytes(of: UInt32(shardNum).bigEndian, as: UInt32.self)
 
-        try slaveClient.send(bytes: Array(buf))
-        try slaveClient.socket.startWatching(on: DispatchQueue.main) {
+        try socket?.send(data: Array(buf))
+        try socket?.startWatching(on: DispatchQueue.main) {
             do {
-               try self.handleMasterEvent(socket: self.slaveClient.socket)
+               try self.handleMessage()
             } catch {
-                print("Error reading on bot \(shardNum)")
+                print("Error reading on bot \(self.shardNum)")
             }
+        }
+    }
+
+    func handleRemoteCall(_ method: String, withParams params: [String: Any], id: Int?) throws {
+        guard let event = BotCall(rawValue: method) else { throw SwiftBotError.invalidCall }
+
+        switch (event, id) {
+        case (.die, _):               killBot()
+        case let (.getStats, id?):    getStats(id: id)
+        default:                      throw SwiftBotError.invalidCall
         }
     }
 
@@ -140,40 +121,28 @@ class ShardManager {
     func requestStats(withCallback callback: @escaping ([String: Any]) -> Void) {
         statsCallbacks.append(callback)
 
-        // guard !waitingForStats else { return }
+        guard !waitingForStats else { return }
 
         waitingForStats = true
 
-        do {
-            try dispatchToMaster(object: [
-                "method": "requestStats",
-                "params": [:],
-                "id": shardNum
-            ])
-        } catch {
-            print("error sending")
-        }
+        // Make a RPC to fetch the stats for the entire network
+        call("getStats") {stats in
+            defer { self.clearStats() }
 
+            guard let stats = stats as? [String: Any] else { return }
+
+            for callback in self.statsCallbacks {
+                callback(stats)
+            }
+        }
     }
 
     private func dispatchToMaster(object: [String: Any]) throws {
-        try slaveClient.send(bytes: encodeDataPacket(object))
-    }
-
-    func sendStats() {
-        let fullStats = stats.reduce([:], reduceStats)
-
-        for callback in statsCallbacks {
-            callback(fullStats)
-        }
-
-        statsCallbacks.removeAll()
-        stats.removeAll()
-        waitingForStats = false
+        try socket?.send(data: encodeDataPacket(object))
     }
 }
 
-let manager = try ShardManager()
+let manager = try ShardManager(shardNum: shardNum)
 try manager.identify()
 
 bot.connect()

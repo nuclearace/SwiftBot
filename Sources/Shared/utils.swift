@@ -19,7 +19,83 @@ import Foundation
 import SocksCore
 
 public enum SwiftBotError : Error {
+    case invalidArgument
+    case invalidCall
     case invalidMessage
+}
+
+public protocol RemoteCallable : class {
+    var currentCall: Int { get set }
+    var shardNum: Int { get }
+    var socket: TCPInternetSocket? { get set }
+    var waitingCalls: [Int: (Any) throws -> Void] { get set }
+
+    /**
+        Invokes `method` on the target, returns the id of the call. Which will be used to match a result.
+    */
+    func call(_ method: String, withParams params: [String: Any],
+        onComplete complete: ((Any) throws -> Void)?) rethrows -> Int
+
+    func handleRemoteCall(_ method: String, withParams params: [String: Any], id: Int?) throws
+
+    func sendResult(_ result: Any, for id: Int) throws
+}
+
+public extension RemoteCallable {
+    @discardableResult
+    func call(_ method: String, withParams params: [String: Any] = [:],
+            onComplete complete: ((Any) throws -> Void)? = nil) rethrows -> Int {
+        waitingCalls[currentCall] = complete
+
+        let callData: [String: Any] = [
+            "method": method,
+            "params": params,
+            "id": currentCall
+        ]
+
+        currentCall += 1
+
+        do {
+            try remoteCall(object: callData)
+        } catch {
+            print("Error trying to do a remote call on shard #\(shardNum)")
+        }
+
+        return currentCall
+    }
+
+    func handleMessage() throws {
+        let messageData = try getDataFromSocket(socket!)
+
+        guard let stringJSON = String(data: Data(bytes: messageData), encoding: .utf8),
+              let json = decodeJSON(stringJSON) as? [String: Any] else { throw SwiftBotError.invalidMessage }
+
+        if let method = json["method"] as? String, let params = json["params"] as? [String: Any] {
+            try handleRemoteCall(method, withParams: params, id: json["id"] as? Int)
+        } else if let result = json["result"], let id = json["id"] as? Int {
+            try waitingCalls[id]?(result)
+            waitingCalls[id] = nil
+        } else {
+            throw SwiftBotError.invalidMessage
+        }
+    }
+
+    private func remoteCall(object: [String: Any]) throws {
+        try socket?.send(data: encodeDataPacket(object))
+    }
+
+    func sendResult(_ result: Any, for id: Int) {
+        let data: [String: Any] = [
+            "result": result,
+            "id": id
+        ]
+
+        do {
+            try remoteCall(object: data)
+        } catch {
+            print("Error trying to send result \(shardNum)")
+        }
+    }
 }
 
 public func encodeDataPacket(_ json: [String: Any]) -> [UInt8] {
@@ -56,7 +132,7 @@ public func getDataFromSocket(_ socket: TCPInternetSocket) throws -> [UInt8] {
 
     guard lengthOfMessageBytes.count == 8 else { throw SwiftBotError.invalidMessage }
 
-    let lengthOfMessage = lengthOfMessageBytes[0] << 56
+    let lengthOfMessage =   lengthOfMessageBytes[0] << 56
                           | lengthOfMessageBytes[1] << 48
                           | lengthOfMessageBytes[2] << 40
                           | lengthOfMessageBytes[3] << 32
@@ -67,4 +143,28 @@ public func getDataFromSocket(_ socket: TCPInternetSocket) throws -> [UInt8] {
 
 
     return try socket.recv(maxBytes: lengthOfMessage)
+}
+
+public func reduceStats(currentStats: [String: Any], otherStats: [String: Any]) -> [String: Any] {
+    var mutStats = currentStats
+
+    for (key, stat) in otherStats {
+        guard let cur = mutStats[key] else {
+            mutStats[key] = stat
+
+            continue
+        }
+
+        // Hacky, but trying to switch on the types fucks up, because on macOS JSONSerialization
+        // turns numbers into some generic __NSCFNumber type, which can cast to anything.
+        switch key {
+        case "shards":      fallthrough
+        case "name":        continue
+        case "uptime":      fallthrough
+        case "memory":      mutStats[key] = cur as! Double + (stat as! Double)
+        default:            mutStats[key] = cur as! Int + (stat as! Int)
+        }
+    }
+
+    return mutStats
 }
