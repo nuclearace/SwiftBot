@@ -147,7 +147,7 @@ class BotManager {
             guard self.killingBots else {
                 print("Restarting it")
 
-                // self.launchBot(withShardNum: shardNum)
+                self.launchBot(withShardNum: shardNum)
 
                 return
             }

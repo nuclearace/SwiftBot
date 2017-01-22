@@ -89,6 +89,8 @@ class ShardManager : RemoteCallable {
     }
 
     func identify() throws {
+        defer { buf.deallocate() }
+
         let buf = UnsafeMutableRawBufferPointer.allocate(count: 4)
         buf.storeBytes(of: UInt32(shardNum).bigEndian, as: UInt32.self)
 
