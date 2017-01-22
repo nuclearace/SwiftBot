@@ -76,7 +76,6 @@ class BotProcess : RemoteCallable {
 
 class BotManager {
     let acceptQueue = DispatchQueue(label: "Accept Queue")
-    let botQueue = DispatchQueue(label: "Bot Queue")
     let masterServer: TCPInternetSocket
 
     var bots = [Int: BotProcess]()
