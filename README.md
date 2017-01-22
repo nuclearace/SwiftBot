@@ -1,7 +1,7 @@
 # SwiftBot
 A bot to showcase [SwiftDiscord](https://github.com/nuclearace/SwiftDiscord)
 
-SwiftBot is designed to be used in many large guilds, and as such, is a distributed bot. That is, there are multiple bots processes created for one "bot". The number of processes spawned is controlled by `numberOfShards` in config.swift located in `Shared`. This can be set to one if you only want a single bot instance running.
+SwiftBot is designed to be used in many large guilds, and as such, is a distributed bot. That is, there are multiple bot processes created for one "bot". The number of processes spawned is controlled by `numberOfShards` in config.swift located in `Shared`. This can be set to one if you only want a single bot instance running.
 
 The bot is made of one module, and two executables.
 
