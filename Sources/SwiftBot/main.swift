@@ -170,8 +170,8 @@ class SwiftBot {
         shardProccess.launch()
 
         shards[shardNum] = Shard(process: shardProccess,
-                                        manager: self,
-                                        shardNum: shardNum)
+                                 manager: self,
+                                 shardNum: shardNum)
     }
 
     func handleRemoteCall(_ method: String, withParams params: [String: Any], id: Int?, shardNum: Int) throws {
