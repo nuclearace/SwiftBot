@@ -26,7 +26,7 @@ import SwiftRateLimiter
 typealias Process = Task
 #endif
 
-let token = "Bot mysupersecrettoken"
+let token = "Bot token"
 let weather = ""
 let wolfram = ""
 let numberOfShards = 2
@@ -185,20 +185,8 @@ class BotManager {
             }
         }
 
-        func tryRemoveWeatherToken(_ id: Int) {
-            weatherLimiter.removeTokens(1) {err, tokens in
-                guard let tokens = tokens, tokens > 0 else {
-                    self.bots[shardNum]?.sendResult(false, for: id)
-
-                    return
-                }
-            }
-
-            self.bots[shardNum]?.sendResult(true, for: id)
-        }
-
-        func tryRemoveWolframToken(_ id: Int) {
-            wolframLimiter.removeTokens(1) {err, tokens in
+        func tryRemoveToken(_ limiter: RateLimiter, _ id: Int) {
+            limiter.removeTokens(1) {err, tokens in
                 guard let tokens = tokens, tokens > 0 else {
                     self.bots[shardNum]?.sendResult(false, for: id)
 
@@ -211,8 +199,8 @@ class BotManager {
 
         switch (call, id) {
         case let (.getStats, id?):                  try callAll("getStats", complete: _handleStat(id))
-        case let (.removeWeatherToken, id?):        tryRemoveWeatherToken(id)
-        case let (.removeWolframToken, id?):        tryRemoveWolframToken(id)
+        case let (.removeWeatherToken, id?):        tryRemoveToken(weatherLimiter, id)
+        case let (.removeWolframToken, id?):        tryRemoveToken(wolframLimiter, id)
         default:                                    throw SwiftBotError.invalidCall
         }
     }
