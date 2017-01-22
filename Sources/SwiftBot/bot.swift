@@ -16,6 +16,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 import Foundation
+import Shared
 import SwiftDiscord
 import SwiftRateLimiter
 #if os(macOS)

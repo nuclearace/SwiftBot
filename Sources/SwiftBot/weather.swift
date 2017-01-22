@@ -16,6 +16,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 import Foundation
+import Shared
 
 func getForecastData(forLocation location: String) -> [String: Any]? {
     let escapedLocation = location.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!

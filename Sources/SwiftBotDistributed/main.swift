@@ -26,10 +26,6 @@ import SwiftRateLimiter
 typealias Process = Task
 #endif
 
-let token = "Bot token"
-let weather = ""
-let wolfram = ""
-let numberOfShards = 2
 let botProcessLocation = FileManager.default.currentDirectoryPath + "/.build/release/SwiftBot"
 let botId = UUID()
 let weatherLimiter = RateLimiter(tokensPerInterval: 10, interval: "minute", firesImmediatly: true)
@@ -140,7 +136,7 @@ class BotManager {
         let botProcess = Process()
 
         botProcess.launchPath = botProcessLocation
-        botProcess.arguments = [token, "\(shardNum)", "\(numberOfShards)", weather, wolfram]
+        botProcess.arguments = ["\(shardNum)", "\(numberOfShards)"]
         botProcess.terminationHandler = {process in
             print("Bot \(shardNum) died")
 

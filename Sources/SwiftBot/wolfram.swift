@@ -16,6 +16,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 import Foundation
+import Shared
 
 func getSimpleWolframAnswer(forQuestion question: String) -> String {
     let escapedQuestion = question.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!

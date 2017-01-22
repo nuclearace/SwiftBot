@@ -21,21 +21,11 @@ import Foundation
 import Shared
 import Socks
 import SocksCore
-import struct SwiftDiscord.DiscordToken
 
-guard CommandLine.arguments.count == 6 else { fatalError("Not enough information to start") }
+guard CommandLine.arguments.count == 3 else { fatalError("Not enough information to start") }
 
-let token = DiscordToken(stringLiteral: CommandLine.arguments[1])
-let shardNum = Int(CommandLine.arguments[2])!
-let totalShards = Int(CommandLine.arguments[3])!
-let weather = CommandLine.arguments[4]
-let wolfram = CommandLine.arguments[5]
-
-let authorImage = URL(string: "https://avatars1.githubusercontent.com/u/1211049?v=3&s=460")
-let authorUrl = URL(string: "https://github.com/nuclearace")
-let sourceUrl = URL(string: "https://github.com/nuclearace/SwiftBot")!
-let ignoreGuilds = ["81384788765712384"]
-let userOverrides = ["104753987663712256"]
+let shardNum = Int(CommandLine.arguments[1])!
+let totalShards = Int(CommandLine.arguments[2])!
 let fortuneExists = FileManager.default.fileExists(atPath: "/usr/local/bin/fortune")
 
 let bot = DiscordBot(token: token, shardNum: shardNum, totalShards: totalShards)

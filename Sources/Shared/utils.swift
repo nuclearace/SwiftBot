@@ -44,7 +44,7 @@ public protocol RemoteCallable : class {
 public extension RemoteCallable {
     @discardableResult
     func call(_ method: String, withParams params: [String: Any] = [:],
-            onComplete complete: ((Any) throws -> Void)? = nil) rethrows -> Int {
+            onComplete complete: ((Any) throws -> Void)? = nil) -> Int {
         waitingCalls[currentCall] = complete
 
         let callData: [String: Any] = [
