@@ -19,6 +19,7 @@ import Foundation
 import SocksCore
 
 public enum SwiftBotError : Error {
+    case authenticationFailure
     case invalidArgument
     case invalidCall
     case invalidMessage

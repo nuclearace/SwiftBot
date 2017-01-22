@@ -16,6 +16,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 import CoreFoundation
+import CryptoSwift
 import Dispatch
 import Foundation
 import Shared
@@ -79,12 +80,12 @@ class ShardManager : RemoteCallable {
     }
 
     func identify() throws {
-        defer { buf.deallocate() }
+        let identifyData: [String: Any] = [
+            "shard": shardNum,
+            "pw": "\(authToken)\(shardNum)".sha512()
+        ]
 
-        let buf = UnsafeMutableRawBufferPointer.allocate(count: 4)
-        buf.storeBytes(of: UInt32(shardNum).bigEndian, as: UInt32.self)
-
-        try socket?.send(data: Array(buf))
+        try socket?.send(data: encodeDataPacket(identifyData))
         try socket?.startWatching(on: DispatchQueue.main) {
             do {
                try self.handleMessage()

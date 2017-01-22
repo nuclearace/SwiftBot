@@ -16,6 +16,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 import CoreFoundation
+import CryptoSwift
 import Dispatch
 import Foundation
 import Shared
@@ -106,12 +107,15 @@ class BotManager {
         print("Got new connection")
 
         // Before a bot starts up, it should identify itself
-        let botNumData = try socket.recv(maxBytes: 4).map(Int.init)
-        let botNum = botNumData[0] << 24 | botNumData[1] << 16 | botNumData[2] << 8 | botNumData[3]
+        guard let stringJSON = String(data: Data(bytes: try getDataFromSocket(socket)), encoding: .utf8),
+              let json = decodeJSON(stringJSON) as? [String: Any],
+              let shard = json["shard"] as? Int,
+              let pw = json["pw"] as? String,
+              pw == "\(authToken)\(shard)".sha512() else { throw SwiftBotError.authenticationFailure }
 
-        print("Shard #\(botNum) identified")
+        print("Shard #\(shard) identified")
 
-        try bots[Int(botNum)]?.attachSocket(socket)
+        try bots[shard]?.attachSocket(socket)
     }
 
     func callAll(_ method: String, params: [String: Any] = [:], complete: ((Any) throws -> Void)? = nil) throws {

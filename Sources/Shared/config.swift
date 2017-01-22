@@ -27,3 +27,4 @@ public let authorUrl = URL(string: "https://github.com/nuclearace")
 public let sourceUrl = URL(string: "https://github.com/nuclearace/SwiftBot")!
 public let ignoreGuilds = ["81384788765712384"]
 public let userOverrides = ["104753987663712256"]
+public let authToken = "thislevelofsecurityiscrap"
