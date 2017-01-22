@@ -15,4 +15,4 @@ Is an actual shard executable, and contains the logic for commands, guilds, etc.
 
 SwiftBot
 -------------------
-Is the controller for all of the shards. It is responsible for keeping the shards alive, should one of them die. It also responsible for global api rate limits, such as the Wolfram-Alpha limit. If a shards wishes to remove a token from one of the limiters, it makes a RMI to see if it can make the request.
+Is the controller for all of the shards. It is responsible for keeping the shards alive, should one of them die. It also responsible for global api rate limits, such as the Wolfram-Alpha limit. If a shard wishes to remove a token from one of the limiters, it makes a RMI to see if it can make the request.

@@ -79,16 +79,7 @@ class ShardManager : RemoteCallable {
     }
 
     func getStats(id: Int) {
-        let data: [String: Any] = [
-            "result": bot.calculateStats(),
-            "id": id
-        ]
-
-        do {
-            try dispatchToMaster(object: data)
-        } catch {
-            print("Error trying to send stats")
-        }
+        sendResult(bot.calculateStats(), for: id)
     }
 
     func identify() throws {

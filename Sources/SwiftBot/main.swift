@@ -103,6 +103,7 @@ class SwiftBot {
             } catch let err {
                 // Unknown error, assume the worst.
                 print("Error accepting connection: \(err)")
+
                 self.shutdown()
             }
         }
