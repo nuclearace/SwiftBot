@@ -104,6 +104,8 @@ class SwiftBot {
                 // Unknown error, assume the worst.
                 print("Error accepting connection: \(err)")
 
+                guard !self.killingShards else { return }
+
                 self.shutdown()
             }
         }
