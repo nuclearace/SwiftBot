@@ -19,6 +19,7 @@ import Foundation
 import SwiftDiscord
 
 enum Command : String {
+    case ask = "ask"
     case brutal = "brutal"
     case forecast = "forecast"
     case fortune = "fortune"

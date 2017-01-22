@@ -20,6 +20,18 @@ import Shared
 import SwiftDiscord
 
 extension Shard : CommandHandler {
+    func handleAsk(with arguments: [String], message: DiscordMessage) {
+        let randomNum: Int
+
+        #if os(macOS)
+        randomNum = Int(arc4random_uniform(2)) % 2
+        #else
+        randomNum = Int(random()) % 2
+        #endif
+
+        message.channel?.sendMessage("```\(arguments.joined(separator: " ")): \(["Yes", "No"][randomNum])```")
+    }
+
     func handleBrutal(with arguments: [String], message: DiscordMessage) {
         brutalizeImage(options: arguments, channel: message.channel!)
     }
@@ -37,6 +49,8 @@ extension Shard : CommandHandler {
         guard let command = Command(rawValue: command.lowercased()) else { return }
 
         switch command {
+        case .ask where arguments.count > 0:
+            handleAsk(with: arguments, message: message)
         case .roles:
             handleMyRoles(with: arguments, message: message)
         case .join where arguments.count > 0:
