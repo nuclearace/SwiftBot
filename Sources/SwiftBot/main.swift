@@ -118,6 +118,22 @@ class ShardManager : RemoteCallable {
         bot.disconnect()
     }
 
+    func removeWeatherToken(withCallback callback: @escaping (Bool) -> Void) {
+        call("removeWeatherToken") {canWeather in
+            guard let canWeather = canWeather as? Bool else { return callback(false) }
+
+            callback(canWeather)
+        }
+    }
+
+    func removeWolframToken(withCallback callback: @escaping (Bool) -> Void) {
+        call("removeWolframToken") {canWolfram in
+            guard let canWolfram = canWolfram as? Bool else { return callback(false) }
+
+            callback(canWolfram)
+        }
+    }
+
     func requestStats(withCallback callback: @escaping ([String: Any]) -> Void) {
         statsCallbacks.append(callback)
 

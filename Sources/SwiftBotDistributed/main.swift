@@ -32,13 +32,15 @@ let wolfram = ""
 let numberOfShards = 2
 let botProcessLocation = FileManager.default.currentDirectoryPath + "/.build/release/SwiftBot"
 let botId = UUID()
-let weatherLimiter = RateLimiter(tokensPerInterval: 10, interval: "minute")
-let wolframLimiter = RateLimiter(tokensPerInterval: 67, interval: "day")
+let weatherLimiter = RateLimiter(tokensPerInterval: 10, interval: "minute", firesImmediatly: true)
+let wolframLimiter = RateLimiter(tokensPerInterval: 67, interval: "day", firesImmediatly: true)
 
 let queue = DispatchQueue(label: "Async Read")
 
 enum BotCall : String {
     case getStats
+    case removeWeatherToken
+    case removeWolframToken
 }
 
 class BotProcess : RemoteCallable {
@@ -171,25 +173,51 @@ class BotManager {
             waitingForStats = true
 
             return {stat in
-                try self.handleStat(stat, id: id, shardNum: shardNum)
+                guard self.waitingForStats, let stat = stat as? [String: Any] else {
+                    throw SwiftBotError.invalidArgument
+                }
+
+                self.stats.append(stat)
+
+                guard self.stats.count == numberOfShards else { return }
+
+                self.sendStats(id, shardNum: shardNum)
             }
         }
 
+        func tryRemoveWeatherToken(_ id: Int) {
+            weatherLimiter.removeTokens(1) {err, tokens in
+                guard let tokens = tokens, tokens > 0 else {
+                    self.bots[shardNum]?.sendResult(false, for: id)
+
+                    return
+                }
+            }
+
+            self.bots[shardNum]?.sendResult(true, for: id)
+        }
+
+        func tryRemoveWolframToken(_ id: Int) {
+            wolframLimiter.removeTokens(1) {err, tokens in
+                guard let tokens = tokens, tokens > 0 else {
+                    self.bots[shardNum]?.sendResult(false, for: id)
+
+                    return
+                }
+            }
+
+            self.bots[shardNum]?.sendResult(true, for: id)
+        }
+
         switch (call, id) {
-        case let (.getStats, id?):     try callAll("getStats", complete: _handleStat(id))
-        default:                       throw SwiftBotError.invalidCall
+        case let (.getStats, id?):                  try callAll("getStats", complete: _handleStat(id))
+        case let (.removeWeatherToken, id?):        tryRemoveWeatherToken(id)
+        case let (.removeWolframToken, id?):        tryRemoveWolframToken(id)
+        default:                                    throw SwiftBotError.invalidCall
         }
     }
 
-    func handleStat(_ json: Any, id: Int, shardNum: Int) throws {
-        guard waitingForStats, let stat = json as? [String: Any] else {
-            throw SwiftBotError.invalidArgument
-        }
-
-        stats.append(stat)
-
-        guard stats.count == numberOfShards else { return }
-
+    func sendStats(_ id: Int, shardNum: Int) {
         bots[shardNum]?.sendResult(stats.reduce([:], reduceStats), for: id)
 
         waitingForStats = false

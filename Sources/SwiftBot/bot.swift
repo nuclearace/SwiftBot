@@ -32,8 +32,6 @@ class DiscordBot : DiscordClientDelegate {
     let shardNum: Int
     let totalShards: Int
 
-    fileprivate let weatherLimiter = RateLimiter(tokensPerInterval: 10, interval: "minute")
-    fileprivate let wolframLimiter = RateLimiter(tokensPerInterval: 67, interval: "day")
     fileprivate var inVoiceChannel = [String: Bool]()
     fileprivate var playingYoutube = [String: Bool]()
     fileprivate var youtube = EncoderProcess()
@@ -384,7 +382,13 @@ extension DiscordBot : CommandHandler {
             location = arguments.joined(separator: " ")
         }
 
-        weatherLimiter.removeTokens(1) {err, tokens in
+        manager.removeWeatherToken {canWeather in
+            guard canWeather else {
+                message.channel?.sendMessage("Weather is rate limited right now!")
+
+                return
+            }
+
             guard let forecast = getForecastData(forLocation: location),
                   let embed = createForecastEmbed(withForecastData: forecast, tomorrow: tomorrow) else {
                 message.channel?.sendMessage("Something went wrong with getting the forecast data")
@@ -425,7 +429,13 @@ extension DiscordBot : CommandHandler {
     }
 
     func handleWeather(with arguments: [String], message: DiscordMessage) {
-        weatherLimiter.removeTokens(1) {err, tokens in
+        manager.removeWeatherToken {canWeather in
+            guard canWeather else {
+                message.channel?.sendMessage("Weather is rate limited right now!")
+
+                return
+            }
+
             guard let weatherData = getWeatherData(forLocation: arguments.joined(separator: " ")),
                   let embed = createWeatherEmbed(withWeatherData: weatherData) else {
                 message.channel?.sendMessage("Something went wrong with getting the weather data")
@@ -438,7 +448,13 @@ extension DiscordBot : CommandHandler {
     }
 
     func handleWolfram(with arguments: [String], message: DiscordMessage) {
-        wolframLimiter.removeTokens(1) {err, tokens in
+        manager.removeWolframToken {canWolfram in
+            guard canWolfram else {
+                message.channel?.sendMessage("Wolfram is rate limited right now!")
+
+                return
+            }
+
             message.channel?.sendMessage(getSimpleWolframAnswer(forQuestion: arguments.joined(separator: "+")))
         }
     }
