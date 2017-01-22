@@ -3,8 +3,8 @@ import PackageDescription
 let package = Package(
     name: "SwiftBot",
     targets: [
-        Target(name: "SwiftBot", dependencies: ["Shared"]),
-        Target(name: "SwiftBotDistributed", dependencies: ["Shared"])
+        Target(name: "SwiftShard", dependencies: ["Shared"]),
+        Target(name: "SwiftBot", dependencies: ["Shared"])
     ],
     dependencies: [
         .Package(url: "https://github.com/nuclearace/SwiftDiscord", majorVersion: 2),

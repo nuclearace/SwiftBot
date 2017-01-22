@@ -27,7 +27,7 @@ let machTaskBasicInfoCount = MemoryLayout<mach_task_basic_info_data_t>.size / Me
 
 typealias QueuedVideo = (link: String, channel: String)
 
-class DiscordBot : DiscordClientDelegate {
+class DiscordShard : DiscordClientDelegate {
     let client: DiscordClient
     let startTime = Date()
     let shardNum: Int
@@ -282,7 +282,7 @@ class DiscordBot : DiscordClientDelegate {
     }
 }
 
-extension DiscordBot : CommandHandler {
+extension DiscordShard : CommandHandler {
     func handleBrutal(with arguments: [String], message: DiscordMessage) {
         brutalizeImage(options: arguments, channel: message.channel!)
     }
