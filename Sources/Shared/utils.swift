@@ -109,7 +109,7 @@ public func encodeDataPacket(_ json: [String: Any]) -> [UInt8] {
         let buf = UnsafeMutableRawBufferPointer.allocate(count: 8)
         let data = Array(UnsafeBufferPointer(start: bytes, count: objectData.count))
 
-        buf.storeBytes(of: UInt64(data.count).bigEndian, as: UInt64.self)
+        buf.storeBytes(of: Int64(data.count).bigEndian, as: Int64.self)
 
         packetData = Array(buf) + data
     }

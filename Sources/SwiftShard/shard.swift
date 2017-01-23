@@ -183,7 +183,6 @@ class Shard : DiscordClientDelegate {
         stats["numberOfVoiceChannels"] = numberOfVoiceChannels
         stats["numberOfLoadedUsers"] = numberOfLoadedUsers
         stats["totalNumberOfUsers"] =  totalUsers
-        stats["uptime"] = Date().timeIntervalSince(startTime)
         stats["shardNum"] = shardNum
         stats["shards"] = totalShards
 

@@ -42,6 +42,7 @@ enum BotCall : String {
 class SwiftBot {
     let acceptQueue = DispatchQueue(label: "Accept Queue")
     let masterServer: TCPInternetSocket
+    let startTime = Date()
 
     var authenticatedShards = 0
     var shards = [Int: Shard]()
@@ -221,7 +222,11 @@ class SwiftBot {
     }
 
     func sendStats(_ id: Int, shardNum: Int) {
-        shards[shardNum]?.sendResult(stats.reduce([:], reduceStats), for: id)
+        var totalStats = stats.reduce([:], reduceStats)
+
+        totalStats["uptime"] = Date().timeIntervalSince(startTime)
+
+        shards[shardNum]?.sendResult(totalStats, for: id)
 
         waitingForStats = false
         stats.removeAll()
