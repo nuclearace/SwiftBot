@@ -30,6 +30,7 @@ enum Command : String {
     case roles = "myroles"
     case skip = "skip"
     case stats = "stats"
+    case talk = "talk"
     case topic = "topic"
     case youtube = "yt"
     case weather = "weather"

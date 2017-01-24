@@ -15,6 +15,7 @@
 // ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+import Cleverbot
 import Dispatch
 import Foundation
 import Shared
@@ -37,6 +38,7 @@ enum ShardCall : String {
 
 class Shard : DiscordClientDelegate {
     var bot: Bot!
+    let cleverbot = Cleverbot { print("Cleverbot is ready") }
     let client: DiscordClient
     let startTime = Date()
     let shardNum: Int
@@ -335,21 +337,5 @@ class Shard : DiscordClientDelegate {
         youtube.launch()
 
         return "Playing"
-    }
-
-    func removeWeatherToken(withCallback callback: @escaping (Bool) -> Void) {
-        bot.call("removeWeatherToken") {canWeather in
-            guard let canWeather = canWeather as? Bool else { return callback(false) }
-
-            callback(canWeather)
-        }
-    }
-
-    func removeWolframToken(withCallback callback: @escaping (Bool) -> Void) {
-        bot.call("removeWolframToken") {canWolfram in
-            guard let canWolfram = canWolfram as? Bool else { return callback(false) }
-
-            callback(canWolfram)
-        }
     }
 }

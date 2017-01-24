@@ -82,6 +82,8 @@ extension Shard : CommandHandler {
             handleSkip(with: arguments, message: message)
         case .brutal where arguments.count > 0:
             handleBrutal(with: arguments, message: message)
+        case .talk where arguments.count > 0:
+            handleTalk(with: arguments, message: message)
         case .topic where arguments.count > 0:
             handleTopic(with: arguments, message: message)
         case .stats:
@@ -151,7 +153,7 @@ extension Shard : CommandHandler {
             location = arguments.joined(separator: " ")
         }
 
-        removeWeatherToken {canWeather in
+        bot.tokenCall(.weather) {canWeather in
             guard canWeather else {
                 message.channel?.sendMessage("Weather is rate limited right now!")
 
@@ -189,12 +191,26 @@ extension Shard : CommandHandler {
         }
     }
 
+    func handleTalk(with arguments: [String], message: DiscordMessage) {
+        bot.tokenCall(.cleverbot) {canTalk in
+            guard canTalk else {
+                message.channel?.sendMessage("Cleverbot is currently being ratelimited")
+
+                return
+            }
+
+            self.cleverbot.say(arguments.joined(separator: " ")) {answer in
+                message.channel?.sendMessage(answer)
+            }
+        }
+    }
+
     func handleTopic(with arguments: [String], message: DiscordMessage) {
         message.channel?.modifyChannel(options: [.topic(arguments.joined(separator: " "))])
     }
 
     func handleWeather(with arguments: [String], message: DiscordMessage) {
-        removeWeatherToken {canWeather in
+        bot.tokenCall(.weather) {canWeather in
             guard canWeather else {
                 message.channel?.sendMessage("Weather is rate limited right now!")
 
@@ -213,7 +229,7 @@ extension Shard : CommandHandler {
     }
 
     func handleWolfram(with arguments: [String], message: DiscordMessage) {
-        removeWolframToken {canWolfram in
+        bot.tokenCall(.wolfram) {canWolfram in
             guard canWolfram else {
                 message.channel?.sendMessage("Wolfram is rate limited right now!")
 

@@ -20,6 +20,12 @@ import Foundation
 import Shared
 import SocksCore
 
+enum TokenCall : String {
+    case cleverbot = "removeCleverbotToken"
+    case weather = "removeWeatherToken"
+    case wolfram = "removeWolframToken"
+}
+
 class Bot : RemoteCallable {
     let shardNum: Int
 
@@ -54,5 +60,13 @@ class Bot : RemoteCallable {
 
     func handleRemoteCall(_ method: String, withParams params: [String: Any], id: Int?) throws {
         try shard?.handleRemoteCall(method, withParams: params, id: id)
+    }
+
+    func tokenCall(_ type: TokenCall, postCall: @escaping (Bool) -> Void) {
+        call(type.rawValue) {canExecute in
+            guard let canExecute = canExecute as? Bool else { return postCall(false) }
+
+            postCall(canExecute)
+        }
     }
 }

@@ -29,12 +29,14 @@ typealias Process = Task
 
 let botProcessLocation = FileManager.default.currentDirectoryPath + "/.build/release/SwiftShard"
 let weatherLimiter = RateLimiter(tokensPerInterval: 10, interval: "minute", firesImmediatly: true)
+let cleverbotLimiter = RateLimiter(tokensPerInterval: 30, interval: "minute", firesImmediatly: true)
 let wolframLimiter = RateLimiter(tokensPerInterval: 67, interval: "day", firesImmediatly: true)
 
 let queue = DispatchQueue(label: "Async Read")
 
 enum BotCall : String {
     case getStats
+    case removeCleverbotToken
     case removeWeatherToken
     case removeWolframToken
 }
@@ -208,6 +210,7 @@ class SwiftBot {
 
         switch (call, id) {
         case let (.getStats, id?):                  callAll("getStats", complete: _handleStat(id))
+        case let (.removeCleverbotToken, id?):        tryRemoveToken(cleverbotLimiter, id)
         case let (.removeWeatherToken, id?):        tryRemoveToken(weatherLimiter, id)
         case let (.removeWolframToken, id?):        tryRemoveToken(wolframLimiter, id)
         default:                                    throw SwiftBotError.invalidCall
@@ -222,11 +225,8 @@ class SwiftBot {
     }
 
     func sendStats(_ id: Int, shardNum: Int) {
-        var totalStats = stats.reduce([:], reduceStats)
-
-        totalStats["uptime"] = Date().timeIntervalSince(startTime)
-
-        shards[shardNum]?.sendResult(totalStats, for: id)
+        shards[shardNum]?.sendResult(stats.reduce(["uptime": Date().timeIntervalSince(startTime)], reduceStats),
+                                     for: id)
 
         waitingForStats = false
         stats.removeAll()
