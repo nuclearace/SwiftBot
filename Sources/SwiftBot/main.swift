@@ -16,21 +16,15 @@
 // DEALINGS IN THE SOFTWARE.
 
 import CoreFoundation
-import CryptoSwift
 import Dispatch
 import Foundation
-import Shared
-import SocksCore
-import SwiftRateLimiter
 
 #if os(Linux)
 typealias Process = Task
 #endif
 
 let botProcessLocation = FileManager.default.currentDirectoryPath + "/.build/release/SwiftShard"
-
 let queue = DispatchQueue(label: "Async Read")
-
 let bot = try SwiftBot()
 
 print("Setting up master server")
