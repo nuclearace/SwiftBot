@@ -44,6 +44,7 @@ class Shard : DiscordClientDelegate {
     let shardNum: Int
     let totalShards: Int
 
+    var connected = false
     var inVoiceChannel = [String: Bool]()
     var playingYoutube = [String: Bool]()
     var youtube = EncoderProcess()
@@ -70,6 +71,8 @@ class Shard : DiscordClientDelegate {
     }
 
     func client(_ client: DiscordClient, didConnect reason: Bool) {
+        connected = true
+
         print("Shard #\(shardNum) connected")
 
         bot.sendResult(true, for: connectId)
@@ -77,6 +80,8 @@ class Shard : DiscordClientDelegate {
 
     func client(_ client: DiscordClient, didDisconnectWithReason reason: String) {
         print("Shard #\(shardNum) disconnected")
+
+        connected = false
 
         do {
             try bot.socket?.close()
@@ -205,8 +210,12 @@ class Shard : DiscordClientDelegate {
     }
 
     func connect(id: Int, waitTime wait: Int?) {
+        guard !connected else { return }
+
         let wait = wait ?? 1
         connectId = id
+
+        print("Shard #\(shardNum) got connect command, connecting in \(wait) seconds")
 
         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + Double(wait)) {
             self.client.connect()

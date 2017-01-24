@@ -95,15 +95,13 @@ class SwiftBot {
 
         print("Shard #\(shard) identified")
 
-        try shards[shard]?.attachSocket(socket)
+        if let shard = shards[shard] {
+            try shard.attachSocket(socket)
+        } else {
+            shards[shard] = try Shard(manager: self, shardNum: shard, socket: socket)
+        }
 
         authenticatedShards += 1
-
-        if !connected {
-            connect()
-        } else {
-            connect(shard: shard)
-        }
     }
 
     func callAll(_ method: String, params: [String: Any] = [:], complete: ((Any) throws -> Void)? = nil) {
@@ -113,8 +111,6 @@ class SwiftBot {
     }
 
     func connect() {
-        guard authenticatedShards == numberOfShards, !connected else { return }
-
         print("Telling all shards to connect")
 
         connected = true
@@ -172,9 +168,7 @@ class SwiftBot {
 
         shardProccess.launch()
 
-        shards[shardNum] = Shard(process: shardProccess,
-                                 manager: self,
-                                 shardNum: shardNum)
+        shards[shardNum] = try! Shard(manager: self, shardNum: shardNum)
     }
 
     func handleRemoteCall(_ method: String, withParams params: [String: Any], id: Int?, shardNum: Int) throws {
@@ -210,7 +204,7 @@ class SwiftBot {
 
         switch (call, id) {
         case let (.getStats, id?):                  callAll("getStats", complete: _handleStat(id))
-        case let (.removeCleverbotToken, id?):        tryRemoveToken(cleverbotLimiter, id)
+        case let (.removeCleverbotToken, id?):      tryRemoveToken(cleverbotLimiter, id)
         case let (.removeWeatherToken, id?):        tryRemoveToken(weatherLimiter, id)
         case let (.removeWolframToken, id?):        tryRemoveToken(wolframLimiter, id)
         default:                                    throw SwiftBotError.invalidCall
@@ -263,8 +257,9 @@ class SwiftBot {
 
 let bot = try SwiftBot()
 
+print("Setting up master server")
+
 try bot.setupServer()
-bot.start()
 
 func readAsync() {
     queue.async {
@@ -279,14 +274,20 @@ func readAsync() {
             } else if command[1] == "shard", let shardNum = Int(command[2]) {
                 bot.kill(shard: shardNum)
             }
+        } else if command[0] == "connect", command.count == 3, let shardNum = Int(command[2]) {
+            bot.connect(shard: shardNum)
+        } else if command[0] == "connect", command.count == 1 {
+            bot.connect()
+        } else if command[0] == "start" {
+            bot.start()
         }
 
         readAsync()
     }
 }
 
-print("Type 'quit' to stop")
-print("Setting up master server")
+print("Bot is ready for deployment. Type 'start' to launch shards. Type 'quit' to stop")
+
 readAsync()
 CFRunLoopRun()
 

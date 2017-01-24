@@ -20,7 +20,6 @@ import Shared
 import SocksCore
 
 class Shard : RemoteCallable {
-    let process: Process
     let shardNum: Int
 
     weak var manager: SwiftBot?
@@ -28,10 +27,13 @@ class Shard : RemoteCallable {
     var socket: TCPInternetSocket?
     var waitingCalls = [Int: (Any) throws -> Void]()
 
-    init(process: Process, manager: SwiftBot, shardNum: Int) {
-        self.process = process
+    init(manager: SwiftBot, shardNum: Int, socket: TCPInternetSocket? = nil) throws {
         self.manager = manager
         self.shardNum = shardNum
+
+        if socket != nil {
+            try attachSocket(socket!)
+        }
     }
 
     func attachSocket(_ socket: TCPInternetSocket) throws {

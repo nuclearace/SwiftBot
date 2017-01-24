@@ -52,8 +52,8 @@ class Bot : RemoteCallable {
         try socket?.startWatching(on: DispatchQueue.main) {
             do {
                try self.handleMessage()
-            } catch {
-                print("Error reading on bot \(self.shardNum)")
+            } catch let err {
+                print("Error reading on bot \(self.shardNum) \(err)")
             }
         }
     }

@@ -58,8 +58,8 @@ public extension RemoteCallable {
 
         do {
             try remoteCall(object: callData)
-        } catch {
-            print("Error trying to do a remote call on shard #\(shardNum)")
+        } catch let err {
+            print("Error trying to do a remote call on shard #\(shardNum) \(err)")
         }
 
         return currentCall
