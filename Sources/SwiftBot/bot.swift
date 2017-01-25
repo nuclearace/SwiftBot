@@ -84,8 +84,6 @@ class SwiftBot {
                 throw SwiftBotError.authenticationFailure
             }
 
-        print("Shard #\(shard) identified")
-
         if let shard = shards[shard] {
             try shard.attachSocket(socket)
         } else {
@@ -93,6 +91,12 @@ class SwiftBot {
         }
 
         authenticatedShards += 1
+
+        if authenticatedShards == numberOfShards {
+            print("Shards are launched, type 'connect' to start them. Or 'connect shard \(shard)' to launch just this shard")
+        } else {
+            print("Shard #\(shard) is identified, type 'connect shard \(shard)' to launch it")
+        }
     }
 
     func callAll(_ method: String, params: [String: Any] = [:], complete: ((Any) throws -> Void)? = nil) {
