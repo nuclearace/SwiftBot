@@ -166,43 +166,36 @@ class SwiftBot {
         shards[shardNum] = try! Shard(manager: self, shardNum: shardNum)
     }
 
+    private func handleStat(callNum: Int, shardNum: Int) -> (Any) throws -> Void {
+        waitingForStats = true
+
+        return {stat in
+            guard self.waitingForStats, let stat = stat as? [String: Any] else {
+                throw SwiftBotError.invalidArgument
+            }
+
+            self.stats.append(stat)
+
+            guard self.stats.count == numberOfShards else { return }
+
+            self.sendStats(callNum, shardNum: shardNum)
+        }
+    }
+
     func handleRemoteCall(_ method: String, withParams params: [String: Any], id: Int?, shardNum: Int) throws {
         guard let call = BotCall(rawValue: method) else { throw SwiftBotError.invalidCall }
 
-        func _handleStat(_ id: Int) -> (Any) throws -> Void {
-            waitingForStats = true
-
-            return {stat in
-                guard self.waitingForStats, let stat = stat as? [String: Any] else {
-                    throw SwiftBotError.invalidArgument
-                }
-
-                self.stats.append(stat)
-
-                guard self.stats.count == numberOfShards else { return }
-
-                self.sendStats(id, shardNum: shardNum)
-            }
-        }
-
-        func tryRemoveToken(_ limiter: RateLimiter, _ id: Int) {
-            limiter.removeTokens(1) {err, tokens in
-                guard let tokens = tokens, tokens > 0 else {
-                    self.shards[shardNum]?.sendResult(false, for: id)
-
-                    return
-                }
-
-                self.shards[shardNum]?.sendResult(true, for: id)
-            }
-        }
-
         switch (call, id) {
-        case let (.getStats, id?):                  callAll("getStats", complete: _handleStat(id))
-        case let (.removeCleverbotToken, id?):      tryRemoveToken(cleverbotLimiter, id)
-        case let (.removeWeatherToken, id?):        tryRemoveToken(weatherLimiter, id)
-        case let (.removeWolframToken, id?):        tryRemoveToken(wolframLimiter, id)
-        default:                                    throw SwiftBotError.invalidCall
+        case let (.getStats, id?):
+            callAll("getStats", complete: handleStat(callNum: id, shardNum: shardNum))
+        case let (.removeCleverbotToken, id?):
+            tryRemoveToken(from: cleverbotLimiter, callNum: id, shardNum: shardNum)
+        case let (.removeWeatherToken, id?):
+            tryRemoveToken(from: weatherLimiter, callNum: id, shardNum: shardNum)
+        case let (.removeWolframToken, id?):
+            tryRemoveToken(from: wolframLimiter, callNum: id, shardNum: shardNum)
+        default:
+            throw SwiftBotError.invalidCall
         }
     }
 
@@ -248,4 +241,17 @@ class SwiftBot {
             launchShard(i)
         }
     }
+
+    private func tryRemoveToken(from limiter: RateLimiter, callNum: Int, shardNum: Int) {
+        limiter.removeTokens(1) {err, tokens in
+            guard let tokens = tokens, tokens > 0 else {
+                self.shards[shardNum]?.sendResult(false, for: callNum)
+
+                return
+            }
+
+            self.shards[shardNum]?.sendResult(true, for: callNum)
+        }
+    }
+
 }
