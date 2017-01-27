@@ -144,6 +144,12 @@ extension Shard : CommandHandler {
     }
 
     func handleForecast(with arguments: [String], message: DiscordMessage) {
+        guard !orphaned else {
+            message.channel?.sendMessage("This shard is currently orphaned, and can't make forecasts.")
+
+            return
+        }
+
         let tomorrow = arguments.last == "tomorrow"
         let location: String
 
@@ -192,6 +198,12 @@ extension Shard : CommandHandler {
     }
 
     func handleTalk(with arguments: [String], message: DiscordMessage) {
+        guard !orphaned else {
+            message.channel?.sendMessage("This shard is currently orphaned, and is too depressed to talk.")
+
+            return
+        }
+
         bot.tokenCall(.cleverbot) {canTalk in
             guard canTalk else {
                 message.channel?.sendMessage("Cleverbot is currently being ratelimited")
@@ -210,6 +222,12 @@ extension Shard : CommandHandler {
     }
 
     func handleWeather(with arguments: [String], message: DiscordMessage) {
+        guard !orphaned else {
+            message.channel?.sendMessage("This shard is currently orphaned, and can't check the weather.")
+
+            return
+        }
+
         bot.tokenCall(.weather) {canWeather in
             guard canWeather else {
                 message.channel?.sendMessage("Weather is rate limited right now!")
@@ -229,6 +247,12 @@ extension Shard : CommandHandler {
     }
 
     func handleWolfram(with arguments: [String], message: DiscordMessage) {
+        guard !orphaned else {
+            message.channel?.sendMessage("This shard is currently orphaned, and can't check wolfram.")
+
+            return
+        }
+
         bot.tokenCall(.wolfram) {canWolfram in
             guard canWolfram else {
                 message.channel?.sendMessage("Wolfram is rate limited right now!")

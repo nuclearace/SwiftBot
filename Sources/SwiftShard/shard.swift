@@ -34,6 +34,7 @@ enum ShardCall : String {
     case connect
     case die
     case getStats
+    case setup
 }
 
 class Shard : DiscordClientDelegate {
@@ -46,15 +47,18 @@ class Shard : DiscordClientDelegate {
 
     var connected = false
     var inVoiceChannel = [String: Bool]()
+    var orphaned = true
     var playingYoutube = [String: Bool]()
     var youtube = EncoderProcess()
     var youtubeQueue = [String: [QueuedVideo]]()
 
     private var connectId = -1
+    private var heartbeatInterval = -1
+    private var pongsMissed = 0
     private var statsCallbacks = [([String: Any]) -> Void]()
     private var waitingForStats = false
 
-    init(token: DiscordToken, shardNum: Int, totalShards: Int) throws {
+    init(token: DiscordToken, shardNum: Int, totalShards: Int) {
         self.shardNum = shardNum
         self.totalShards = totalShards
 
@@ -62,7 +66,7 @@ class Shard : DiscordClientDelegate {
             .singleShard(DiscordShardInformation(shardNum: shardNum, totalShards: totalShards)), .fillUsers, .pruneUsers])
         client.delegate = self
 
-        bot = try Bot(shard: self, shardNum: shardNum)
+        bot = Bot(shard: self, shardNum: shardNum)
     }
 
     func clearStats() {
@@ -192,6 +196,7 @@ class Shard : DiscordClientDelegate {
         stats["totalNumberOfUsers"] =  totalUsers
         stats["shardNum"] = shardNum
         stats["shards"] = totalShards
+        stats["orphan"] = orphaned
 
         #if os(macOS)
         let name = mach_task_self_
@@ -283,6 +288,12 @@ class Shard : DiscordClientDelegate {
     }
 
     func getStats(callback: @escaping ([String: Any]) -> Void) {
+        guard !orphaned else {
+            callback(calculateStats())
+
+            return
+        }
+
         statsCallbacks.append(callback)
 
         guard !waitingForStats else { return }
@@ -317,6 +328,7 @@ class Shard : DiscordClientDelegate {
         case (.die, _):               disconnect()
         case let (.connect, id?):     connect(id: id, waitTime: params["wait"] as? Int)
         case let (.getStats, id?):    bot.sendResult(calculateStats(), for: id)
+        case (.setup, _):             setup(with: params)
         default:                      throw SwiftBotError.invalidCall
         }
     }
@@ -346,5 +358,58 @@ class Shard : DiscordClientDelegate {
         youtube.launch()
 
         return "Playing"
+    }
+
+    private func sendPing() {
+        guard pongsMissed < 2, !orphaned else {
+            setupOrphanedShard()
+
+            return
+        }
+
+        pongsMissed += 1
+
+        bot.call("ping") {alive in
+            self.pongsMissed = 0
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + Double(heartbeatInterval), execute: sendPing)
+    }
+
+    /**
+        Sets the shard into orphaned mode, all API requests fail, stats return only this shard, and the shard attempts
+        to reestablish contanct with the Bot.
+    */
+    func setupOrphanedShard() {
+        guard !orphaned else { return }
+
+        print("Putting shard #\(shardNum) into orphaned mode.")
+
+        orphaned = true
+
+        unorphan()
+    }
+
+    private func setup(with params: [String: Any]) {
+        guard let heartbeatInterval = params["heartbeatInterval"] as? Int else {
+            fatalError("Shard \(shardNum) didn't get a heartbeat")
+        }
+
+        self.heartbeatInterval = heartbeatInterval
+        orphaned = false
+
+        sendPing()
+    }
+
+    func unorphan() {
+        guard orphaned else { return }
+
+        do {
+            try bot.identify()
+        } catch let err {
+            print("Error trying to start bot \(err)")
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 10, execute: unorphan)
     }
 }

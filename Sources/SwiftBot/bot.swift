@@ -24,6 +24,7 @@ import SwiftRateLimiter
 
 enum BotCall : String {
     case getStats
+    case ping
     case removeCleverbotToken
     case removeWeatherToken
     case removeWolframToken
@@ -89,6 +90,8 @@ class SwiftBot {
         } else {
             shards[shard] = try Shard(manager: self, shardNum: shard, socket: socket)
         }
+
+        shards[shard]?.call("setup", withParams: ["heartbeatInterval": 50])
 
         authenticatedShards += 1
 
@@ -188,6 +191,8 @@ class SwiftBot {
         switch (call, id) {
         case let (.getStats, id?):
             callAll("getStats", complete: handleStat(callNum: id, shardNum: shardNum))
+        case let(.ping, id?):
+            pong(to: shardNum, callNum: id)
         case let (.removeCleverbotToken, id?):
             tryRemoveToken(from: cleverbotLimiter, callNum: id, shardNum: shardNum)
         case let (.removeWeatherToken, id?):
@@ -197,6 +202,10 @@ class SwiftBot {
         default:
             throw SwiftBotError.invalidCall
         }
+    }
+
+    func pong(to shardNum: Int, callNum: Int) {
+        shards[shardNum]?.sendResult(true, for: callNum)
     }
 
     func restart() {

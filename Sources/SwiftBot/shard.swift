@@ -40,14 +40,16 @@ class Shard : RemoteCallable {
         self.socket = socket
 
         try socket.startWatching(on: DispatchQueue.main) {
-            print("Shard #\(self.shardNum) has something waiting")
-
             do {
                try self.handleMessage()
             } catch let err {
-                print("Error reading from shard #\(self.shardNum) \(err)")
+                self.handleTransportError(err)
             }
         }
+    }
+
+    func handleTransportError(_ error: Error) {
+        print("Transport error on shard #\(shardNum) \(error)")
     }
 
     func handleRemoteCall(_ method: String, withParams params: [String: Any], id: Int?) throws {

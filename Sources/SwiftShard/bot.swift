@@ -34,15 +34,15 @@ class Bot : RemoteCallable {
     var socket: TCPInternetSocket?
     var waitingCalls = [Int: (Any) throws -> Void]()
 
-    init(shard: Shard, shardNum: Int) throws {
+    init(shard: Shard, shardNum: Int) {
         self.shard = shard
         self.shardNum = shardNum
-        socket = try TCPInternetSocket(address: InternetAddress(hostname: "127.0.0.1", port: 42343))
-
-        try socket?.connect()
     }
 
     func identify() throws {
+        socket = try TCPInternetSocket(address: InternetAddress(hostname: "127.0.0.1", port: 42343))
+        try socket?.connect()
+
         let identifyData: [String: Any] = [
             "shard": shardNum,
             "pw": "\(authToken)\(shardNum)".sha512()
@@ -53,9 +53,15 @@ class Bot : RemoteCallable {
             do {
                try self.handleMessage()
             } catch let err {
-                print("Error reading on bot \(self.shardNum) \(err)")
+                self.handleTransportError(err)
             }
         }
+    }
+
+    func handleTransportError(_ error: Error) {
+        print("Transport error on shard #\(shardNum) \(error)")
+
+        shard?.setupOrphanedShard()
     }
 
     func handleRemoteCall(_ method: String, withParams params: [String: Any], id: Int?) throws {

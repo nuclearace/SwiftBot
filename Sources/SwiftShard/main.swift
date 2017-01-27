@@ -24,8 +24,8 @@ guard CommandLine.arguments.count == 3 else { fatalError("Not enough information
 let shardNum = Int(CommandLine.arguments[1])!
 let totalShards = Int(CommandLine.arguments[2])!
 let fortuneExists = FileManager.default.fileExists(atPath: "/usr/local/bin/fortune")
+let shard = Shard(token: token, shardNum: shardNum, totalShards: totalShards)
 
-let shard = try Shard(token: token, shardNum: shardNum, totalShards: totalShards)
-try shard.bot.identify()
+shard.unorphan()
 
 CFRunLoopRun()

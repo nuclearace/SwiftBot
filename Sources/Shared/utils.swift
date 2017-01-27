@@ -36,9 +36,8 @@ public protocol RemoteCallable : class {
     */
     func call(_ method: String, withParams params: [String: Any],
         onComplete complete: ((Any) throws -> Void)?) rethrows -> Int
-
+    func handleTransportError(_ error: Error)
     func handleRemoteCall(_ method: String, withParams params: [String: Any], id: Int?) throws
-
     func sendResult(_ result: Any, for id: Int) throws
 }
 
@@ -59,7 +58,7 @@ public extension RemoteCallable {
         do {
             try remoteCall(object: callData)
         } catch let err {
-            print("Error trying to do a remote call on shard #\(shardNum) \(err)")
+            handleTransportError(err)
         }
 
         return currentCall
@@ -144,7 +143,6 @@ public func getDataFromSocket(_ socket: TCPInternetSocket) throws -> [UInt8] {
                           | lengthOfMessageBytes[6] << 8
                           | lengthOfMessageBytes[7]
 
-
     return try socket.recv(maxBytes: lengthOfMessage)
 }
 
@@ -163,6 +161,7 @@ public func reduceStats(currentStats: [String: Any], otherStats: [String: Any]) 
         switch key {
         case "shards":      fallthrough
         case "name":        continue
+        case "orphan":      continue
         case "uptime":      fallthrough
         case "memory":      mutStats[key] = cur as! Double + (stat as! Double)
         default:            mutStats[key] = cur as! Int + (stat as! Int)

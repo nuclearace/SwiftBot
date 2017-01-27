@@ -43,7 +43,6 @@ func createFormatMessage(withStats stats: [String: Any]) -> DiscordEmbed {
     let totalNumberOfUsers = stats["totalNumberOfUsers"] as! Int
     let shards = stats["shards"] as! Int
     let fieldMaker = DiscordEmbed.Field.init(name:value:inline:)
-    let uptime = stats["uptime"] as! Double
 
     var embed = DiscordEmbed(title: "\(stats["name"] as! String)'s stats",
                              description: "[Source](\(sourceUrl.absoluteString))",
@@ -64,7 +63,13 @@ func createFormatMessage(withStats stats: [String: Any]) -> DiscordEmbed {
         embed.fields.append(fieldMaker("Memory", "\(memory) MB", true))
     }
 
-    embed.fields.append(fieldMaker("Uptime", "\(uptimeString(fromSeconds: uptime))", true))
+    if stats["orphan"] as? Bool ?? false {
+        embed.fields.append(fieldMaker("Orphaned", "Shard running in orphaned mode.", true))
+    }
+
+    if let uptime = stats["uptime"] as? Double {
+        embed.fields.append(fieldMaker("Uptime", "\(uptimeString(fromSeconds: uptime))", true))
+    }
 
     return embed
 }
