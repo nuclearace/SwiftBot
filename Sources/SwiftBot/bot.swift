@@ -139,19 +139,19 @@ class SwiftBot {
         shards[shard]?.call("die")
     }
 
-    func launchShard(_ shardNum: Int) {
+    func launch(shard: Int) {
         let shardProccess = Process()
 
         shardProccess.launchPath = botProcessLocation
-        shardProccess.arguments = ["\(shardNum)", "\(numberOfShards)"]
+        shardProccess.arguments = ["\(shard)", "\(numberOfShards)"]
         shardProccess.terminationHandler = {process in
-            print("Shard #\(shardNum) died")
+            print("Shard #\(shard) died")
 
             guard self.killingShards else {
                 print("Restarting it")
 
                 DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 5) {
-                    self.launchShard(shardNum)
+                    self.launch(shard: shard)
                 }
 
                 return
@@ -166,7 +166,7 @@ class SwiftBot {
 
         shardProccess.launch()
 
-        shards[shardNum] = try! Shard(manager: self, shardNum: shardNum)
+        shards[shard] = try! Shard(manager: self, shardNum: shard)
     }
 
     private func handleStat(callNum: Int, shardNum: Int) -> (Any) throws -> Void {
@@ -247,7 +247,7 @@ class SwiftBot {
 
     func start() {
         for i in 0..<numberOfShards {
-            launchShard(i)
+            launch(shard: i)
         }
     }
 
