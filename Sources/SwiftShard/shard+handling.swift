@@ -112,7 +112,11 @@ extension Shard : CommandHandler {
 
         // Avoid evaluating every member.
         let members = guild.members.lazy.map({ $0.value })
-        let randomNum = Int(arc4random_uniform(UInt32(guild.members.count - 1)))
+        #if os(macOS)
+        let randomNum = Int(arc4random_uniform(UInt32(guild.members.count)))
+        #else
+        let randomNum = Int(random()) % guild.members.count
+        #endif
         let randomIndex = members.index(members.startIndex, offsetBy: randomNum)
         let randomMember = members[randomIndex]
         let name = randomMember.nick ?? randomMember.user.username
@@ -184,10 +188,6 @@ extension Shard : CommandHandler {
     }
 
     func handleSkip(with arguments: [String], message: DiscordMessage) {
-        if youtube.isRunning {
-            youtube.terminate()
-        }
-
         client.voiceEngines[message.channel?.guild?.id ?? ""]?.requestNewEncoder()
     }
 

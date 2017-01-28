@@ -49,7 +49,6 @@ class Shard : DiscordClientDelegate {
     var inVoiceChannel = [String: Bool]()
     var orphaned = true
     var playingYoutube = [String: Bool]()
-    var youtube = EncoderProcess()
     var youtubeQueue = [String: [QueuedVideo]]()
 
     private var connectId = -1
@@ -345,13 +344,12 @@ class Shard : DiscordClientDelegate {
 
         playingYoutube[guild.id] = true
 
-        youtube = EncoderProcess()
+        let youtube = EncoderProcess()
         youtube.launchPath = "/usr/local/bin/youtube-dl"
         youtube.arguments = ["-f", "bestaudio", "-q", "-o", "-", link]
         youtube.standardOutput = client.voiceEngines[guild.id]!.requestFileHandleForWriting()!
 
         youtube.terminationHandler = {[weak self] process in
-            print("yt died")
             self?.client.voiceEngines[guild.id]?.encoder?.finishEncodingAndClose()
         }
 
@@ -377,13 +375,13 @@ class Shard : DiscordClientDelegate {
     }
 
     /**
-        Sets the shard into orphaned mode, all API requests fail, stats return only this shard, and the shard attempts
+        Sets the shard into orphaned mode. All API requests fail, stats return only this shard, and the shard attempts
         to reestablish contanct with the Bot.
     */
     func setupOrphanedShard() {
         guard !orphaned else { return }
 
-        print("Putting shard #\(shardNum) into orphaned mode.")
+        print("Putting shard #\(shardNum) into orphaned mode")
 
         orphaned = true
 
@@ -407,7 +405,7 @@ class Shard : DiscordClientDelegate {
         do {
             try bot.identify()
         } catch let err {
-            print("Error trying to start bot \(err)")
+            print("Error trying to unorphan shard #\(shardNum) \(err)")
         }
 
         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 10, execute: unorphan)
