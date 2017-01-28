@@ -65,9 +65,8 @@ public extension RemoteCallable {
     }
 
     func handleMessage() throws {
-        let messageData = try getDataFromSocket(socket!)
-
-        guard let stringJSON = String(data: Data(bytes: messageData), encoding: .utf8),
+        guard let messageData = try socket?.getData(),
+              let stringJSON = String(data: Data(bytes: messageData), encoding: .utf8),
               let json = decodeJSON(stringJSON) as? [String: Any] else { throw SwiftBotError.invalidMessage }
 
         if let method = json["method"] as? String, let params = json["params"] as? [String: Any] {
@@ -95,6 +94,25 @@ public extension RemoteCallable {
         } catch {
             print("Error trying to send result \(shardNum)")
         }
+    }
+}
+
+public extension TCPInternetSocket {
+    public func getData() throws -> [UInt8] {
+        let lengthOfMessageBytes = try recv(maxBytes: 8).map(Int.init)
+
+        guard lengthOfMessageBytes.count == 8 else { throw SwiftBotError.invalidMessage }
+
+        let lengthOfMessage =   lengthOfMessageBytes[0] << 56
+                              | lengthOfMessageBytes[1] << 48
+                              | lengthOfMessageBytes[2] << 40
+                              | lengthOfMessageBytes[3] << 32
+                              | lengthOfMessageBytes[4] << 24
+                              | lengthOfMessageBytes[5] << 16
+                              | lengthOfMessageBytes[6] << 8
+                              | lengthOfMessageBytes[7]
+
+        return try recv(maxBytes: lengthOfMessage)
     }
 }
 
@@ -127,23 +145,6 @@ public func decodeJSON(_ string: String) -> Any? {
     guard let json = try? JSONSerialization.jsonObject(with: data, options: .mutableContainers) else { return nil }
 
     return json
-}
-
-public func getDataFromSocket(_ socket: TCPInternetSocket) throws -> [UInt8] {
-    let lengthOfMessageBytes = try socket.recv(maxBytes: 8).map(Int.init)
-
-    guard lengthOfMessageBytes.count == 8 else { throw SwiftBotError.invalidMessage }
-
-    let lengthOfMessage =   lengthOfMessageBytes[0] << 56
-                          | lengthOfMessageBytes[1] << 48
-                          | lengthOfMessageBytes[2] << 40
-                          | lengthOfMessageBytes[3] << 32
-                          | lengthOfMessageBytes[4] << 24
-                          | lengthOfMessageBytes[5] << 16
-                          | lengthOfMessageBytes[6] << 8
-                          | lengthOfMessageBytes[7]
-
-    return try socket.recv(maxBytes: lengthOfMessage)
 }
 
 public func reduceStats(currentStats: [String: Any], otherStats: [String: Any]) -> [String: Any] {

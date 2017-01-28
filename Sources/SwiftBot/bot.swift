@@ -76,7 +76,7 @@ class SwiftBot {
         print("Got new connection")
 
         // Before a bot starts up, it should identify itself
-        guard let stringJSON = String(data: Data(bytes: try getDataFromSocket(socket)), encoding: .utf8),
+        guard let stringJSON = String(data: Data(bytes: try socket.getData()), encoding: .utf8),
               let json = decodeJSON(stringJSON) as? [String: Any],
               let shard = json["shard"] as? Int,
               let pw = json["pw"] as? String,
