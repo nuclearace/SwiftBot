@@ -40,7 +40,7 @@ class Bot : RemoteCallable {
     }
 
     func identify() throws {
-        socket = try TCPInternetSocket(address: InternetAddress(hostname: "127.0.0.1", port: 42343))
+        socket = try TCPInternetSocket(address: InternetAddress(hostname: botHost, port: 42343))
         try socket?.connect()
 
         let identifyData: [String: Any] = [

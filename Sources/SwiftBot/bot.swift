@@ -47,7 +47,7 @@ class SwiftBot {
     var waitingForStats = false
 
     init() throws {
-        masterServer = try TCPInternetSocket(address: InternetAddress(hostname: "127.0.0.1", port: 42343))
+        masterServer = try TCPInternetSocket(address: InternetAddress(hostname: botHost, port: 42343))
     }
 
     func acceptConnection() {
