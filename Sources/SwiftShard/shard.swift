@@ -61,8 +61,12 @@ class Shard : DiscordClientDelegate {
         self.shardNum = shardNum
         self.totalShards = totalShards
 
-        client = DiscordClient(token: token, configuration: [.log(.verbose),
-            .singleShard(DiscordShardInformation(shardNum: shardNum, totalShards: totalShards)), .fillUsers, .pruneUsers])
+        client = DiscordClient(token: token, configuration: [
+            .log(.none),
+            .singleShard(DiscordShardInformation(shardNum: shardNum, totalShards: totalShards)),
+            .fillUsers,
+            .pruneUsers
+        ])
         client.delegate = self
 
         bot = Bot(shard: self, shardNum: shardNum)
