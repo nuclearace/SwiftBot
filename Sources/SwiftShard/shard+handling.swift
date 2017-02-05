@@ -15,6 +15,8 @@
 // ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+import COPUS
+import DiscordOpus
 import Foundation
 import Shared
 import SwiftDiscord
@@ -188,7 +190,11 @@ extension Shard : CommandHandler {
     }
 
     func handleSkip(with arguments: [String], message: DiscordMessage) {
-        client.voiceEngines[message.channel?.guild?.id ?? ""]?.requestNewEncoder()
+        do {
+            try client.voiceEngines[message.channel?.guild?.id ?? ""]?.requestNewEncoder()
+        } catch {
+            message.channel?.sendMessage("Something went wrong trying to skip")
+        }
     }
 
     func handleStats(with arguments: [String], message: DiscordMessage) {

@@ -337,7 +337,8 @@ class Shard : DiscordClientDelegate {
     }
 
     func playYoutube(channelId: String, link: String) -> String {
-        guard let guild = client.guildForChannel(channelId), inVoiceChannel[guild.id] ?? false else {
+        guard let guild = client.guildForChannel(channelId), inVoiceChannel[guild.id] ?? false,
+              let voiceEngine = client.voiceEngines[guild.id] else {
             return "Not in voice channel"
         }
         guard !(playingYoutube[guild.id] ?? true) else {
@@ -351,12 +352,13 @@ class Shard : DiscordClientDelegate {
         let youtube = EncoderProcess()
         youtube.launchPath = "/usr/local/bin/youtube-dl"
         youtube.arguments = ["-f", "bestaudio", "-q", "-o", "-", link]
-        youtube.standardOutput = client.voiceEngines[guild.id]!.requestFileHandleForWriting()!
+        youtube.standardOutput = voiceEngine.requestFileHandleForWriting()!
 
-        youtube.terminationHandler = {[weak self] process in
-            self?.client.voiceEngines[guild.id]?.encoder?.finishEncodingAndClose()
+        youtube.terminationHandler = {[weak encoder = voiceEngine.encoder!] process in
+            encoder?.finishEncodingAndClose()
         }
 
+        voiceEngine.startSpeaking()
         youtube.launch()
 
         return "Playing"
