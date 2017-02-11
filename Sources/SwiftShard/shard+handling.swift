@@ -15,11 +15,15 @@
 // ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-import COPUS
-import DiscordOpus
 import Foundation
 import Shared
 import SwiftDiscord
+
+enum VoiceChannelCheckResult {
+    case fine(DiscordGuildChannel)
+    case notFound
+    case permissionFail
+}
 
 extension Shard : CommandHandler {
     func handleAsk(with arguments: [String], message: DiscordMessage) {
@@ -72,7 +76,7 @@ extension Shard : CommandHandler {
             handleDubs(with: arguments, message: message)
         case .join where arguments.count > 0:
             handleJoin(with: arguments, message: message)
-        case .leave:
+        case .leave where arguments.count > 0:
             handleLeave(with: arguments, message: message)
         case .is:
             handleIs(with: arguments, message: message)
@@ -127,16 +131,17 @@ extension Shard : CommandHandler {
     }
 
     func handleJoin(with arguments: [String], message: DiscordMessage) {
-        guard let channel = findChannelFromName(arguments.joined(separator: " "),
-                in: client.guildForChannel(message.channelId)) else {
-            message.channel?.sendMessage("That doesn't look like a channel in this guild.")
+        let channel: DiscordGuildChannel
+        let result = voiceChannelCheck(name: arguments.joined(separator: " "), message: message)
 
+        switch result {
+        case let .fine(voiceChannel):
+            channel = voiceChannel
+        case .notFound:
+            message.channel?.sendMessage("I couldn't find a voice channel with that name.")
             return
-        }
-
-        guard channel.type == .voice else {
-            message.channel?.sendMessage("That's not a voice channel.")
-
+        case .permissionFail:
+            message.channel?.sendMessage("You don't have permission to let me join that channel.")
             return
         }
 
@@ -146,6 +151,19 @@ extension Shard : CommandHandler {
     }
 
     func handleLeave(with arguments: [String], message: DiscordMessage) {
+        let result = voiceChannelCheck(name: arguments.joined(separator: " "), message: message)
+
+        switch result {
+        case .fine:
+            break
+        case .notFound:
+            message.channel?.sendMessage("I couldn't find a voice channel with that name.")
+            return
+        case .permissionFail:
+            message.channel?.sendMessage("You don't have permission to let me leave that channel.")
+            return
+        }
+
         client.leaveVoiceChannel(onGuild: message.channel?.guild?.id ?? "")
     }
 
@@ -190,6 +208,15 @@ extension Shard : CommandHandler {
     }
 
     func handleSkip(with arguments: [String], message: DiscordMessage) {
+        guard let guild = message.channel?.guild,
+              let member = guild.members[message.author.id],
+              let channelId = client.voiceStates[guild.id]?.channelId,
+              let channel = client.findChannel(fromId: channelId) as? DiscordGuildChannel,
+              channel.canMember(member, .moveMembers) else {
+
+            return
+        }
+
         do {
             try client.voiceEngines[message.channel?.guild?.id ?? ""]?.requestNewEncoder()
         } catch {
@@ -272,5 +299,19 @@ extension Shard : CommandHandler {
 
     func handleYoutube(with arguments: [String], message: DiscordMessage) {
         message.channel?.sendMessage(playYoutube(channelId: message.channelId, link: arguments[0]))
+    }
+}
+
+fileprivate extension Shard {
+    func voiceChannelCheck(name: String, message: DiscordMessage) -> VoiceChannelCheckResult {
+        guard let channel = findVoiceChannel(from: name, in: client.guildForChannel(message.channelId)) else {
+            return .notFound
+        }
+
+        guard let member = channel.guild?.members[message.author.id], channel.canMember(member, .moveMembers) else {
+            return .permissionFail
+        }
+
+        return .fine(channel)
     }
 }

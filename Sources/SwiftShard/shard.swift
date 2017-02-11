@@ -234,7 +234,7 @@ class Shard : DiscordClientDelegate {
         client.disconnect()
     }
 
-    func findChannelFromName(_ name: String, in guild: DiscordGuild? = nil) -> DiscordGuildChannel? {
+    func findChannel(from name: String, in guild: DiscordGuild? = nil) -> DiscordGuildChannel? {
         // We have a guild to narrow the search
         if guild != nil, let channels = client.guilds[guild!.id]?.channels {
             return channels.filter({ $0.value.name == name }).map({ $0.1 }).first
@@ -249,6 +249,14 @@ class Shard : DiscordClientDelegate {
                 return keyValue.value.name == name ? keyValue.value : nil
             })
         }).first
+    }
+
+    func findVoiceChannel(from name: String, in guild: DiscordGuild?) -> DiscordGuildChannel? {
+        guard let channel = findChannel(from: name, in: guild), channel.type == .voice else {
+            return nil
+        }
+
+        return channel
     }
 
     func getFortune() -> String {
