@@ -29,3 +29,4 @@ public let ignoreGuilds = ["81384788765712384"]
 public let userOverrides = ["104753987663712256"]
 public let authToken = "thislevelofsecurityiscrap"
 public let botHost = "127.0.0.1"
+public let cleverbotKey = ""

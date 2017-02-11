@@ -39,7 +39,7 @@ enum ShardCall : String {
 
 class Shard : DiscordClientDelegate {
     var bot: Bot!
-    let cleverbot = Cleverbot { print("Cleverbot is ready") }
+    let cleverbot = Cleverbot(apiKey: cleverbotKey)
     let client: DiscordClient
     let startTime = Date()
     let shardNum: Int
