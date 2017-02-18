@@ -360,14 +360,10 @@ class Shard : DiscordClientDelegate {
         let youtube = EncoderProcess()
         youtube.launchPath = "/usr/local/bin/youtube-dl"
         youtube.arguments = ["-f", "bestaudio", "-q", "-o", "-", link]
-        youtube.standardOutput = voiceEngine.requestFileHandleForWriting()!
 
-        youtube.terminationHandler = {[weak encoder = voiceEngine.encoder!] process in
-            encoder?.finishEncodingAndClose()
+        voiceEngine.setupMiddleware(youtube) {
+            print("youtube died")
         }
-
-        voiceEngine.startSpeaking()
-        youtube.launch()
 
         return "Playing"
     }
