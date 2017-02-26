@@ -80,7 +80,7 @@ class SwiftBot {
               let json = decodeJSON(stringJSON) as? [String: Any],
               let shard = json["shard"] as? Int,
               let pw = json["pw"] as? String,
-              pw == "\(authToken)\(shard)".sha512() else {
+              pw == "\(authToken)\(shard)".sha3(.sha512) else {
                 try socket.close()
                 throw SwiftBotError.authenticationFailure
             }

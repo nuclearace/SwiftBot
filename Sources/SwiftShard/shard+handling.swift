@@ -35,7 +35,8 @@ extension Shard : CommandHandler {
         randomNum = Int(random()) % 2
         #endif
 
-        message.channel?.sendMessage("```\(arguments.joined(separator: " ")): \(["Yes", "No"][randomNum])```")
+        message.channel?.send(DiscordMessage(content: "```\(arguments.joined(separator: " ")): " +
+                "\(["Yes", "No"][randomNum])```"))
     }
 
     func handleDubs(with arguments: [String], message: DiscordMessage) {
@@ -47,7 +48,7 @@ extension Shard : CommandHandler {
         randomNum = Int(random()) % 1000000
         #endif
 
-        message.channel?.sendMessage("```\(randomNum)```")
+        message.channel?.send(DiscordMessage(content: "```\(randomNum)```"))
     }
 
 
@@ -106,12 +107,12 @@ extension Shard : CommandHandler {
     }
 
     func handleFortune(with arguments: [String], message: DiscordMessage) {
-        message.channel?.sendMessage(getFortune())
+        message.channel?.send(DiscordMessage(content: getFortune()))
     }
 
     func handleIs(with arguments: [String], message: DiscordMessage) {
         guard let guild = message.channel?.guild else {
-            message.channel?.sendMessage("Is this a guild channel m8?")
+            message.channel?.send("Is this a guild channel m8?")
 
             return
         }
@@ -127,7 +128,7 @@ extension Shard : CommandHandler {
         let randomMember = members[randomIndex]
         let name = randomMember.nick ?? randomMember.user.username
 
-        message.channel?.sendMessage("\(name) is \(arguments.joined(separator: " "))")
+        message.channel?.send(DiscordMessage(content: "\(name) is \(arguments.joined(separator: " "))"))
     }
 
     func handleJoin(with arguments: [String], message: DiscordMessage) {
@@ -138,10 +139,10 @@ extension Shard : CommandHandler {
         case let .fine(voiceChannel):
             channel = voiceChannel
         case .notFound:
-            message.channel?.sendMessage("I couldn't find a voice channel with that name.")
+            message.channel?.send("I couldn't find a voice channel with that name.")
             return
         case .permissionFail:
-            message.channel?.sendMessage("You don't have permission to let me join that channel.")
+            message.channel?.send("You don't have permission to let me join that channel.")
             return
         }
 
@@ -157,10 +158,10 @@ extension Shard : CommandHandler {
         case .fine:
             break
         case .notFound:
-            message.channel?.sendMessage("I couldn't find a voice channel with that name.")
+            message.channel?.send("I couldn't find a voice channel with that name.")
             return
         case .permissionFail:
-            message.channel?.sendMessage("You don't have permission to let me leave that channel.")
+            message.channel?.send("You don't have permission to let me leave that channel.")
             return
         }
 
@@ -169,7 +170,7 @@ extension Shard : CommandHandler {
 
     func handleForecast(with arguments: [String], message: DiscordMessage) {
         guard !orphaned else {
-            message.channel?.sendMessage("This shard is currently orphaned, and can't make forecasts.")
+            message.channel?.send("This shard is currently orphaned, and can't make forecasts.")
 
             return
         }
@@ -185,32 +186,32 @@ extension Shard : CommandHandler {
 
         bot.tokenCall(.weather) {canWeather in
             guard canWeather else {
-                message.channel?.sendMessage("Weather is rate limited right now!")
+                message.channel?.send("Weather is rate limited right now!")
 
                 return
             }
 
             guard let forecast = getForecastData(forLocation: location),
                   let embed = createForecastEmbed(withForecastData: forecast, tomorrow: tomorrow) else {
-                message.channel?.sendMessage("Something went wrong with getting the forecast data")
+                message.channel?.send("Something went wrong with getting the forecast data")
 
                 return
             }
 
-            message.channel?.sendMessage("", embed: embed)
+            message.channel?.send(DiscordMessage(content: "", embeds: [embed]))
         }
     }
 
     func handleMyRoles(with arguments: [String], message: DiscordMessage) {
         let roles = getRolesForUser(message.author, on: message.channelId)
 
-        message.channel?.sendMessage("Your roles: \(roles.map({ $0.name }))")
+        message.channel?.send(DiscordMessage(content: "Your roles: \(roles.map({ $0.name }))"))
     }
 
     func handleSkip(with arguments: [String], message: DiscordMessage) {
         guard let guild = message.channel?.guild,
               let member = guild.members[message.author.id],
-              let channelId = client.voiceStates[guild.id]?.channelId,
+              let channelId = client.voiceManager.voiceStates[guild.id]?.channelId,
               let channel = client.findChannel(fromId: channelId) as? DiscordGuildChannel,
               channel.canMember(member, .moveMembers) else {
 
@@ -218,34 +219,34 @@ extension Shard : CommandHandler {
         }
 
         do {
-            try client.voiceEngines[message.channel?.guild?.id ?? ""]?.requestNewEncoder()
+            try client.voiceManager.voiceEngines[message.channel?.guild?.id ?? ""]?.requestNewEncoder()
         } catch {
-            message.channel?.sendMessage("Something went wrong trying to skip")
+            message.channel?.send("Something went wrong trying to skip")
         }
     }
 
     func handleStats(with arguments: [String], message: DiscordMessage) {
         getStats {stats in
-            message.channel?.sendMessage("", embed: createFormatMessage(withStats: stats))
+            message.channel?.send(DiscordMessage(content: "", embeds: [createFormatMessage(withStats: stats)]))
         }
     }
 
     func handleTalk(with arguments: [String], message: DiscordMessage) {
         guard !orphaned else {
-            message.channel?.sendMessage("This shard is currently orphaned, and is too depressed to talk.")
+            message.channel?.send("This shard is currently orphaned, and is too depressed to talk.")
 
             return
         }
 
         bot.tokenCall(.cleverbot) {canTalk in
             guard canTalk else {
-                message.channel?.sendMessage("Cleverbot is currently being ratelimited")
+                message.channel?.send("Cleverbot is currently being ratelimited")
 
                 return
             }
 
             self.cleverbot.say(arguments.joined(separator: " ")) {answer in
-                message.channel?.sendMessage(answer)
+                message.channel?.send(DiscordMessage(content: answer))
             }
         }
     }
@@ -256,49 +257,51 @@ extension Shard : CommandHandler {
 
     func handleWeather(with arguments: [String], message: DiscordMessage) {
         guard !orphaned else {
-            message.channel?.sendMessage("This shard is currently orphaned, and can't check the weather.")
+            message.channel?.send("This shard is currently orphaned, and can't check the weather.")
 
             return
         }
 
         bot.tokenCall(.weather) {canWeather in
             guard canWeather else {
-                message.channel?.sendMessage("Weather is rate limited right now!")
+                message.channel?.send("Weather is rate limited right now!")
 
                 return
             }
 
             guard let weatherData = getWeatherData(forLocation: arguments.joined(separator: " ")),
                   let embed = createWeatherEmbed(withWeatherData: weatherData) else {
-                message.channel?.sendMessage("Something went wrong with getting the weather data")
+                message.channel?.send("Something went wrong with getting the weather data")
 
                 return
             }
 
-            message.channel?.sendMessage("", embed: embed)
+            message.channel?.send(DiscordMessage(content: "", embeds: [embed]))
         }
     }
 
     func handleWolfram(with arguments: [String], message: DiscordMessage) {
         guard !orphaned else {
-            message.channel?.sendMessage("This shard is currently orphaned, and can't check wolfram.")
+            message.channel?.send("This shard is currently orphaned, and can't check wolfram.")
 
             return
         }
 
         bot.tokenCall(.wolfram) {canWolfram in
             guard canWolfram else {
-                message.channel?.sendMessage("Wolfram is rate limited right now!")
+                message.channel?.send("Wolfram is rate limited right now!")
 
                 return
             }
 
-            message.channel?.sendMessage(getSimpleWolframAnswer(forQuestion: arguments.joined(separator: "+")))
+            let result = getSimpleWolframAnswer(forQuestion: arguments.joined(separator: "+"))
+
+            message.channel?.send(DiscordMessage(content: result))
         }
     }
 
     func handleYoutube(with arguments: [String], message: DiscordMessage) {
-        message.channel?.sendMessage(playYoutube(channelId: message.channelId, link: arguments[0]))
+        message.channel?.send(playYoutube(channelId: message.channelId, link: arguments[0]))
     }
 }
 

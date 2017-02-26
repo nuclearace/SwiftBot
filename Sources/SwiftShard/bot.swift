@@ -45,7 +45,7 @@ class Bot : RemoteCallable {
 
         let identifyData: [String: Any] = [
             "shard": shardNum,
-            "pw": "\(authToken)\(shardNum)".sha512()
+            "pw": "\(authToken)\(shardNum)".sha3(.sha512)
         ]
 
         try socket?.send(data: encodeDataPacket(identifyData))

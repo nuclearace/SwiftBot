@@ -116,7 +116,7 @@ class Shard : DiscordClientDelegate {
         let video = queue.remove(at: 0)
         youtubeQueue[engine.voiceState.guildId] = queue
 
-        client.sendMessage("Playing \(video.link)", to: video.channel)
+        client.sendMessage(DiscordMessage(content: "Playing \(video.link)"), to: video.channel)
 
         _ = playYoutube(channelId: video.channel, link: video.link)
     }
@@ -137,26 +137,26 @@ class Shard : DiscordClientDelegate {
         }
 
         guard imagePath != nil else {
-            channel.sendMessage("Missing image url")
+            channel.send("Missing image url")
 
             return
         }
 
         guard let request = createGetRequest(for: imagePath) else {
-            channel.sendMessage("Invalid url")
+            channel.send("Invalid url")
 
             return
         }
 
         getRequestData(for: request) {data in
             guard let data = data else {
-                channel.sendMessage("Something went wrong with the request")
+                channel.send("Something went wrong with the request")
 
                 return
             }
 
             guard let brutalizer = ImageBrutalizer(data: data) else {
-                channel.sendMessage("Invalid image")
+                channel.send("Invalid image")
 
                 return
             }
@@ -166,16 +166,19 @@ class Shard : DiscordClientDelegate {
             }
 
             guard let outputData = brutalizer.outputData else {
-                channel.sendMessage("Something went wrong brutalizing the image")
+                channel.send("Something went wrong brutalizing the image")
 
                 return
             }
 
-            channel.sendFile(DiscordFileUpload(data: outputData, filename: "brutalized.png", mimeType: "image/png"),
-                content: "Brutalized:")
+            let embeds = [DiscordEmbed(title: "Brutalized", description: "",
+                                       image: DiscordEmbed.Image(url: "attachment://brutalized.png"))]
+            let files = [DiscordFileUpload(data: outputData, filename: "brutalized.png", mimeType: "image/png")]
+
+            channel.send(DiscordMessage(content: "", embeds: embeds, files: files))
         }
         #else
-        channel.sendMessage("Not available on Linux")
+        channel.send("Not available on Linux")
         #endif
     }
 
@@ -344,15 +347,15 @@ class Shard : DiscordClientDelegate {
         }
     }
 
-    func playYoutube(channelId: String, link: String) -> String {
+    func playYoutube(channelId: String, link: String) -> DiscordMessage {
         guard let guild = client.guildForChannel(channelId), inVoiceChannel[guild.id] ?? false,
-              let voiceEngine = client.voiceEngines[guild.id] else {
+              let voiceEngine = client.voiceManager.voiceEngines[guild.id] else {
             return "Not in voice channel"
         }
         guard !(playingYoutube[guild.id] ?? true) else {
             youtubeQueue[guild.id]?.append((link, channelId))
 
-            return "Video Queued. \(youtubeQueue[guild.id]?.count ?? -10000) videos in queue"
+            return DiscordMessage(content: "Video Queued. \(youtubeQueue[guild.id]?.count ?? -10000) videos in queue")
         }
 
         playingYoutube[guild.id] = true
