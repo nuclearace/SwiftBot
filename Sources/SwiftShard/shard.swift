@@ -40,7 +40,7 @@ enum ShardCall : String {
 class Shard : DiscordClientDelegate {
     var bot: Bot!
     let cleverbot = Cleverbot(apiKey: cleverbotKey)
-    let client: DiscordClient
+    var client: DiscordClient!
     let startTime = Date()
     let shardNum: Int
     let totalShards: Int
@@ -61,13 +61,12 @@ class Shard : DiscordClientDelegate {
         self.shardNum = shardNum
         self.totalShards = totalShards
 
-        client = DiscordClient(token: token, configuration: [
+        client = DiscordClient(token: token, delegate: self, configuration: [
             .log(.none),
             .singleShard(DiscordShardInformation(shardNum: shardNum, totalShards: totalShards)),
             .fillUsers,
             .pruneUsers
         ])
-        client.delegate = self
 
         bot = Bot(shard: self, shardNum: shardNum)
     }
@@ -289,13 +288,13 @@ class Shard : DiscordClientDelegate {
 
     func getRolesForUser(_ user: DiscordUser, on channelId: String) -> [DiscordRole] {
         for (_, guild) in client.guilds where guild.channels[channelId] != nil {
-            guard let userInGuild = guild.members[user.id] else {
+            guard let member = guild.members[user.id] else {
                 print("This user doesn't seem to be in the guild?")
 
                 return []
             }
 
-            return guild.roles.filter({ userInGuild.roles.contains($0.key) }).map({ $0.1 })
+            return member.roles ?? guild.roles(for: member)
         }
 
         return []
@@ -362,7 +361,7 @@ class Shard : DiscordClientDelegate {
 
         let youtube = EncoderProcess()
         youtube.launchPath = "/usr/local/bin/youtube-dl"
-        youtube.arguments = ["-f", "bestaudio", "-q", "-o", "-", link]
+        youtube.arguments = ["-f", "bestaudio", "--no-cache-dir", "--no-part", "--no-continue", "-q", "-o", "-", link]
 
         voiceEngine.setupMiddleware(youtube) {
             print("youtube died")
