@@ -266,7 +266,7 @@ class Shard : DiscordClientDelegate {
             return "This bot doesn't have fortune installed"
         }
 
-        let fortune = EncoderProcess()
+        let fortune = Process()
         let pipe = Pipe()
         var saying: String!
 
@@ -359,7 +359,7 @@ class Shard : DiscordClientDelegate {
 
         playingYoutube[guild.id] = true
 
-        let youtube = EncoderProcess()
+        let youtube = Process()
         youtube.launchPath = "/usr/local/bin/youtube-dl"
         youtube.arguments = ["-f", "bestaudio", "--no-cache-dir", "--no-part", "--no-continue", "-q", "-o", "-", link]
 
