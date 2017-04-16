@@ -20,6 +20,9 @@ import Foundation
 import SwiftDiscord
 import Shared
 
+private let shardSession = URLSession(configuration: .default, delegate: nil,
+                                      delegateQueue: OperationQueue())
+
 func createFormatMessage(withStats stats: [String: Any]) -> DiscordEmbed {
     func uptimeString(fromSeconds seconds: Double) -> String {
         var timeString = ""
@@ -161,7 +164,7 @@ func createGetRequest(for string: String) -> URLRequest? {
 }
 
 func getRequestData(for request: URLRequest, callback: @escaping (Data?) -> Void) {
-    URLSession.shared.dataTask(with: request) {data, response, error in
+    sharedSession.dataTask(with: request) {data, response, error in
         guard data != nil, error == nil, let response = response as? HTTPURLResponse,
                 response.statusCode == 200 else {
             callback(nil)
