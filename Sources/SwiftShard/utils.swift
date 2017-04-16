@@ -20,8 +20,7 @@ import Foundation
 import SwiftDiscord
 import Shared
 
-private let sharedSession = URLSession(configuration: .default, delegate: nil,
-                                       delegateQueue: OperationQueue())
+private let sharedSession = URLSession(configuration: .default, delegate: nil, delegateQueue: OperationQueue())
 
 func createFormatMessage(withStats stats: [String: Any]) -> DiscordEmbed {
     func uptimeString(fromSeconds seconds: Double) -> String {
@@ -98,13 +97,13 @@ func createForecastEmbed(withForecastData data: [String: Any], tomorrow: Bool) -
     let fieldMaker = DiscordEmbed.Field.init(name:value:inline:)
 
     embed.fields.append(fieldMaker(day["title"] as! String + " Fahrenheit masterrace",
-        day["fcttext"] as! String, false))
+                                   day["fcttext"] as! String, false))
     embed.fields.append(fieldMaker(night["title"] as! String + " Fahrenheit masterrace",
-        night["fcttext"] as! String, false))
+                                   night["fcttext"] as! String, false))
     embed.fields.append(fieldMaker(day["title"] as! String + " Metric plebrace",
-        day["fcttext_metric"] as! String, false))
+                                   day["fcttext_metric"] as! String, false))
     embed.fields.append(fieldMaker(night["title"] as! String + " Metric plebrace",
-        night["fcttext_metric"] as! String, false))
+                                   night["fcttext_metric"] as! String, false))
 
     return embed
 }
