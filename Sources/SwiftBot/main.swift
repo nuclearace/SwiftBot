@@ -19,10 +19,6 @@ import CoreFoundation
 import Dispatch
 import Foundation
 
-#if os(Linux)
-typealias Process = Task
-#endif
-
 let botProcessLocation = FileManager.default.currentDirectoryPath + "/.build/release/SwiftShard"
 let queue = DispatchQueue(label: "Async Read")
 let bot = try SwiftBot()

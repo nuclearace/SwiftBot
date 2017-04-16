@@ -16,6 +16,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 import CryptoSwift
+import Dispatch
 import Foundation
 import Shared
 import SocksCore

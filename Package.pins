@@ -2,6 +2,12 @@
   "autoPin": true,
   "pins": [
     {
+      "package": "Cleverbot",
+      "reason": null,
+      "repositoryURL": "https://github.com/nuclearace/CleverSwift",
+      "version": "0.1.4"
+    },
+    {
       "package": "CLibreSSL",
       "reason": null,
       "repositoryURL": "https://github.com/vapor/clibressl.git",
@@ -12,12 +18,6 @@
       "reason": null,
       "repositoryURL": "https://github.com/nuclearace/copus",
       "version": "1.0.9"
-    },
-    {
-      "package": "Cleverbot",
-      "reason": null,
-      "repositoryURL": "https://github.com/nuclearace/CleverSwift",
-      "version": "0.1.3"
     },
     {
       "package": "Core",
@@ -71,13 +71,13 @@
       "package": "SwiftDiscord",
       "reason": null,
       "repositoryURL": "https://github.com/nuclearace/SwiftDiscord",
-      "version": "3.3.0"
+      "version": "3.4.2"
     },
     {
       "package": "SwiftRateLimiter",
       "reason": null,
       "repositoryURL": "https://github.com/nuclearace/SwiftRateLimiter",
-      "version": "1.0.1"
+      "version": "1.0.2"
     },
     {
       "package": "TLS",
