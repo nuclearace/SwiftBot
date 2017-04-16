@@ -20,8 +20,8 @@ import Foundation
 import SwiftDiscord
 import Shared
 
-private let shardSession = URLSession(configuration: .default, delegate: nil,
-                                      delegateQueue: OperationQueue())
+private let sharedSession = URLSession(configuration: .default, delegate: nil,
+                                       delegateQueue: OperationQueue())
 
 func createFormatMessage(withStats stats: [String: Any]) -> DiscordEmbed {
     func uptimeString(fromSeconds seconds: Double) -> String {
