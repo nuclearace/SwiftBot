@@ -23,10 +23,6 @@ let botProcessLocation = FileManager.default.currentDirectoryPath + "/.build/rel
 let queue = DispatchQueue(label: "Async Read")
 let bot = try SwiftBot()
 
-print("Setting up master server")
-
-try bot.setupServer()
-
 func readAsync() {
     queue.async {
         guard let input = readLine(strippingNewline: true) else { fatalError() }
@@ -52,7 +48,15 @@ func readAsync() {
     }
 }
 
-print("Bot is ready for deployment. Type 'start' to launch shards. Type 'quit' to stop")
-
 readAsync()
+
+DispatchQueue.global().async {
+    do {
+        try bot.setupServer()
+    } catch let err {
+        print("Got error \(err)")
+        exit(1)
+    }
+}
+
 CFRunLoopRun()

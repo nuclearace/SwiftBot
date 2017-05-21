@@ -18,9 +18,11 @@
 import CryptoSwift
 import Dispatch
 import Foundation
+import HTTP
 import Shared
-import SocksCore
+import Sockets
 import SwiftRateLimiter
+import WebSockets
 
 enum BotCall : String {
     case getStats
@@ -30,10 +32,10 @@ enum BotCall : String {
     case removeWolframToken
 }
 
-class SwiftBot {
+class SwiftBot : Responder {
     let acceptQueue = DispatchQueue(label: "Accept Queue")
     let cleverbotLimiter = RateLimiter(tokensPerInterval: 30, interval: "minute", firesImmediatly: true)
-    let masterServer: TCPInternetSocket
+    let masterServer: TCPServer
     let startTime = Date()
     let weatherLimiter = RateLimiter(tokensPerInterval: 10, interval: "minute", firesImmediatly: true)
     let wolframLimiter = RateLimiter(tokensPerInterval: 67, interval: "day", firesImmediatly: true)
@@ -47,45 +49,13 @@ class SwiftBot {
     var waitingForStats = false
 
     init() throws {
-        masterServer = try TCPInternetSocket(address: InternetAddress(hostname: botHost, port: 42343))
+        masterServer = try TCPServer(TCPInternetSocket(InternetAddress(hostname: botHost, port: 42343)))
     }
 
-    func acceptConnection() {
-        acceptQueue.async {
-            print("Waiting for a new connection")
-
-            do {
-                try self.attachSocketToBot(try self.masterServer.accept())
-                self.acceptConnection()
-            } catch SwiftBotError.authenticationFailure {
-                print("Shard failed to authenticate")
-
-                self.acceptConnection()
-            } catch let err {
-                // Unknown error, assume the worst.
-                print("Error accepting connection: \(err)")
-
-                guard !self.killingShards else { return }
-
-                self.shutdown()
-            }
-        }
-    }
-
-    func attachSocketToBot(_ socket: TCPInternetSocket) throws {
-        print("Got new connection")
-
-        // Before a bot starts up, it should identify itself
-        guard let stringJSON = String(data: Data(bytes: try socket.getData()), encoding: .utf8),
-              let json = decodeJSON(stringJSON) as? [String: Any],
-              let shard = json["shard"] as? Int,
-              let pw = json["pw"] as? String,
-              pw == "\(authToken)\(shard)".sha3(.sha512) else {
-                try socket.close()
-                throw SwiftBotError.authenticationFailure
-            }
-
+    func attachSocketToBot(_ socket: WebSocket, shard: Int) throws {
         if let shard = shards[shard] {
+            print("Add socket to shard #\(shard.shardNum)")
+
             try shard.attachSocket(socket)
         } else {
             shards[shard] = try Shard(manager: self, shardNum: shard, socket: socket)
@@ -208,6 +178,22 @@ class SwiftBot {
         shards[shardNum]?.sendResult(true, for: callNum)
     }
 
+    func respond(to request: Request) throws -> Response {
+        print("Got new connection\nauthenticating")
+
+        // Before a bot starts up, it should identify itself
+        guard let shard = Int(request.headers["shard"]!),
+              let pw = request.headers["pw"], pw == "\(authToken)\(shard)".sha3(.sha512) else {
+            throw SwiftBotError.authenticationFailure
+        }
+
+        return try request.upgradeToWebSocket {ws in
+            print("Upgraded shard #\(shard) socket to WebSockets")
+
+            try self.attachSocketToBot(ws, shard: shard)
+        }
+    }
+
     func restart() {
         connected = false
         authenticatedShards = 0
@@ -226,23 +212,15 @@ class SwiftBot {
     func setupServer() throws {
         print("Starting to listen")
 
-        try masterServer.bind()
-        try masterServer.listen()
-
-        print("starting to accept connections")
-
-        acceptConnection()
+        try masterServer.start(self) {err in
+            print(err)
+        }
     }
 
     func shutdown() {
         killingShards = true
 
-        do {
-            callAll("die")
-            try masterServer.close()
-        } catch {
-            print("couldn't close server")
-        }
+        callAll("die")
     }
 
     func start() {

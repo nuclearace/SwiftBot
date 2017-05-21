@@ -18,8 +18,11 @@
 import CryptoSwift
 import Dispatch
 import Foundation
+import HTTP
 import Shared
-import SocksCore
+import Sockets
+import Transport
+import WebSockets
 
 enum TokenCall : String {
     case cleverbot = "removeCleverbotToken"
@@ -32,8 +35,8 @@ class Bot : RemoteCallable {
 
     weak var shard: Shard?
     var currentCall = 0
-    var socket: TCPInternetSocket?
-    var waitingCalls = [Int: (Any) throws -> Void]()
+    var socket: WebSocket?
+    var waitingCalls = [Int: (Any) throws -> ()]()
 
     init(shard: Shard, shardNum: Int) {
         self.shard = shard
@@ -41,20 +44,23 @@ class Bot : RemoteCallable {
     }
 
     func identify() throws {
-        socket = try TCPInternetSocket(address: InternetAddress(hostname: botHost, port: 42343))
-        try socket?.connect()
-
-        let identifyData: [String: Any] = [
-            "shard": shardNum,
-            "pw": "\(authToken)\(shardNum)".sha3(.sha512)
+        let headers: [HeaderKey: String] = [
+            HeaderKey("shard"): String(self.shardNum),
+            HeaderKey("pw"): "\(authToken)\(self.shardNum)".sha3(.sha512)
         ]
 
-        try socket?.send(data: encodeDataPacket(identifyData))
-        try socket?.startWatching(on: DispatchQueue.main) {
-            do {
-               try self.handleMessage()
-            } catch let err {
-                self.handleTransportError(err)
+        try WebSocket.background(to: "ws://\(botHost):42343",
+                                 using: TCPInternetSocket(scheme: "ws", hostname: "127.0.0.1", port: 42343),
+                                 headers: headers) {ws in
+            print("Shard #\(self.shardNum) WebSocket connected!")
+
+            self.socket = ws
+            self.socket?.onText = {ws, text in
+                do {
+                    try self.handleMessage(text)
+                } catch let err {
+                    self.handleTransportError(err)
+                }
             }
         }
     }

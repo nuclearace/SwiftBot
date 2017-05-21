@@ -16,7 +16,8 @@
 // DEALINGS IN THE SOFTWARE.
 
 import Foundation
-import SocksCore
+import Sockets
+import WebSockets
 
 public enum SwiftBotError : Error {
     case authenticationFailure
@@ -28,7 +29,7 @@ public enum SwiftBotError : Error {
 public protocol RemoteCallable : class {
     var currentCall: Int { get set }
     var shardNum: Int { get }
-    var socket: TCPInternetSocket? { get set }
+    var socket: WebSocket? { get set }
     var waitingCalls: [Int: (Any) throws -> Void] { get set }
 
     /**
@@ -64,11 +65,21 @@ public extension RemoteCallable {
         return currentCall
     }
 
-    func handleMessage() throws {
-        guard let messageData = try socket?.getData(),
-              let stringJSON = String(data: Data(bytes: messageData), encoding: .utf8),
-              let json = decodeJSON(stringJSON) as? [String: Any] else { throw SwiftBotError.invalidMessage }
+    func handleMessage(_ message: String) throws {
+        guard let json = decodeJSON(message) as? [String: Any] else {
+            throw SwiftBotError.invalidMessage
+        }
 
+        DispatchQueue.main.async {
+            do {
+                try self._handleMessage(json: json)
+            } catch let err {
+                self.handleTransportError(err)
+            }
+        }
+    }
+
+    private func _handleMessage(json: [String: Any]) throws {
         if let method = json["method"] as? String, let params = json["params"] as? [String: Any] {
             try handleRemoteCall(method, withParams: params, id: json["id"] as? Int)
         } else if let result = json["result"], let id = json["id"] as? Int {
@@ -80,7 +91,7 @@ public extension RemoteCallable {
     }
 
     private func remoteCall(object: [String: Any]) throws {
-        try socket?.send(data: encodeDataPacket(object))
+        try socket!.send(encodeDataPacket(object))
     }
 
     func sendResult(_ result: Any, for id: Int) {
@@ -97,43 +108,8 @@ public extension RemoteCallable {
     }
 }
 
-public extension TCPInternetSocket {
-    public func getData() throws -> [UInt8] {
-        let lengthOfMessageBytes = try recv(maxBytes: 8).map(Int.init)
-
-        guard lengthOfMessageBytes.count == 8 else { throw SwiftBotError.invalidMessage }
-
-        let lengthOfMessage =   lengthOfMessageBytes[0] << 56
-                              | lengthOfMessageBytes[1] << 48
-                              | lengthOfMessageBytes[2] << 40
-                              | lengthOfMessageBytes[3] << 32
-                              | lengthOfMessageBytes[4] << 24
-                              | lengthOfMessageBytes[5] << 16
-                              | lengthOfMessageBytes[6] << 8
-                              | lengthOfMessageBytes[7]
-
-        return try recv(maxBytes: lengthOfMessage)
-    }
-}
-
-public func encodeDataPacket(_ json: [String: Any]) -> [UInt8] {
-    var packetData: [UInt8]!
-    let objectData = encodeJSON(json)!.data(using: .utf8)!
-
-    objectData.withUnsafeBytes {(bytes: UnsafePointer<UInt8>) in
-        let buf: UnsafeMutableRawBufferPointer
-        
-        defer { buf.deallocate() }
-
-        buf = UnsafeMutableRawBufferPointer.allocate(count: 8)
-        let data = Array(UnsafeBufferPointer(start: bytes, count: objectData.count))
-
-        buf.storeBytes(of: Int64(data.count).bigEndian, as: Int64.self)
-
-        packetData = Array(buf) + data
-    }
-
-    return packetData
+public func encodeDataPacket(_ json: [String: Any]) -> String {
+    return encodeJSON(json)!
 }
 
 public func encodeJSON(_ object: Any) -> String? {

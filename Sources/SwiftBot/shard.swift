@@ -18,17 +18,18 @@
 import Dispatch
 import Foundation
 import Shared
-import SocksCore
+import Sockets
+import WebSockets
 
 class Shard : RemoteCallable {
     let shardNum: Int
 
     weak var manager: SwiftBot?
     var currentCall = 0
-    var socket: TCPInternetSocket?
+    var socket: WebSocket?
     var waitingCalls = [Int: (Any) throws -> Void]()
 
-    init(manager: SwiftBot, shardNum: Int, socket: TCPInternetSocket? = nil) throws {
+    init(manager: SwiftBot, shardNum: Int, socket: WebSocket? = nil) throws {
         self.manager = manager
         self.shardNum = shardNum
 
@@ -37,12 +38,11 @@ class Shard : RemoteCallable {
         }
     }
 
-    func attachSocket(_ socket: TCPInternetSocket) throws {
+    func attachSocket(_ socket: WebSocket) throws {
         self.socket = socket
-
-        try socket.startWatching(on: DispatchQueue.main) {
+        self.socket?.onText = {ws, text in
             do {
-               try self.handleMessage()
+                try self.handleMessage(text)
             } catch let err {
                 self.handleTransportError(err)
             }
