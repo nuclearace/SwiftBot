@@ -19,7 +19,7 @@ import Cleverbot
 import Dispatch
 import Foundation
 import Shared
-import SocksCore
+import Sockets
 import SwiftDiscord
 import SwiftRateLimiter
 #if os(macOS)
