@@ -16,7 +16,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 import Foundation
-import struct SwiftDiscord.DiscordToken
+import SwiftDiscord
 
 public let token = "Bot token" as DiscordToken
 public let weather = ""
@@ -25,8 +25,8 @@ public let numberOfShards = 2
 public let authorImage = URL(string: "https://avatars1.githubusercontent.com/u/1211049?v=3&s=460")
 public let authorUrl = URL(string: "https://github.com/nuclearace")
 public let sourceUrl = URL(string: "https://github.com/nuclearace/SwiftBot")!
-public let ignoreGuilds = ["81384788765712384"]
-public let userOverrides = ["104753987663712256"]
+public let ignoreGuilds = [81384788765712384] as [GuildID]
+public let userOverrides = [104753987663712256] as [UserID]
 public let authToken = "thislevelofsecurityiscrap"
 public let botHost = "127.0.0.1"
 public let cleverbotKey = ""

@@ -165,7 +165,7 @@ extension Shard : CommandHandler {
             return
         }
 
-        client.leaveVoiceChannel(onGuild: message.channel?.guild?.id ?? "")
+        client.leaveVoiceChannel(onGuild: message.channel?.guild?.id ?? 0)
     }
 
     func handleForecast(with arguments: [String], message: DiscordMessage) {
@@ -219,7 +219,7 @@ extension Shard : CommandHandler {
         }
 
         do {
-            try client.voiceManager.voiceEngines[message.channel?.guild?.id ?? ""]?.requestNewEncoder()
+            try client.voiceManager.voiceEngines[message.channel?.guild?.id ?? 0]?.requestNewEncoder()
         } catch {
             message.channel?.send("Something went wrong trying to skip")
         }

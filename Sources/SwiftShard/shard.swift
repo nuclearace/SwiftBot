@@ -28,7 +28,7 @@ import ImageBrutalizer
 let machTaskBasicInfoCount = MemoryLayout<mach_task_basic_info_data_t>.size / MemoryLayout<natural_t>.size
 #endif
 
-typealias QueuedVideo = (link: String, channel: String)
+typealias QueuedVideo = (link: String, channel: ChannelID)
 
 enum ShardCall : String {
     case connect
@@ -46,10 +46,10 @@ class Shard : DiscordClientDelegate {
     let totalShards: Int
 
     var connected = false
-    var inVoiceChannel = [String: Bool]()
+    var inVoiceChannel = [ChannelID: Bool]()
     var orphaned = true
-    var playingYoutube = [String: Bool]()
-    var youtubeQueue = [String: [QueuedVideo]]()
+    var playingYoutube = [ChannelID: Bool]()
+    var youtubeQueue = [ChannelID: [QueuedVideo]]()
 
     private var connectId = -1
     private var heartbeatInterval = -1
@@ -120,7 +120,7 @@ class Shard : DiscordClientDelegate {
         _ = playYoutube(channelId: video.channel, link: video.link)
     }
 
-    func brutalizeImage(options: [String], channel: DiscordChannel) {
+    func brutalizeImage(options: [String], channel: DiscordTextChannel) {
         #if os(macOS)
         let args = options.map(BrutalArg.init)
         var imagePath: String!
@@ -188,7 +188,7 @@ class Shard : DiscordClientDelegate {
         let channels = guilds.flatMap({ $0.channels.map({ $0.value }) })
         let username = client.user!.username
         let guildNumber = guilds.count
-        let numberOfTextChannels = channels.filter({ $0.type == .text }).count
+        let numberOfTextChannels = channels.flatMap({ $0 as? DiscordTextChannel }).count
         let numberOfVoiceChannels = channels.count - numberOfTextChannels
         let numberOfLoadedUsers = guilds.reduce(0, { $0 + $1.members.count })
         let totalUsers = guilds.reduce(0, { $0 + $1.memberCount })
@@ -254,7 +254,7 @@ class Shard : DiscordClientDelegate {
     }
 
     func findVoiceChannel(from name: String, in guild: DiscordGuild?) -> DiscordGuildChannel? {
-        guard let channel = findChannel(from: name, in: guild), channel.type == .voice else {
+        guard let channel = findChannel(from: name, in: guild), channel is DiscordGuildVoiceChannel else {
             return nil
         }
 
@@ -286,7 +286,7 @@ class Shard : DiscordClientDelegate {
         return saying
     }
 
-    func getRolesForUser(_ user: DiscordUser, on channelId: String) -> [DiscordRole] {
+    func getRolesForUser(_ user: DiscordUser, on channelId: ChannelID) -> [DiscordRole] {
         for (_, guild) in client.guilds where guild.channels[channelId] != nil {
             guard let member = guild.members[user.id] else {
                 print("This user doesn't seem to be in the guild?")
@@ -346,7 +346,7 @@ class Shard : DiscordClientDelegate {
         }
     }
 
-    func playYoutube(channelId: String, link: String) -> DiscordMessage {
+    func playYoutube(channelId: ChannelID, link: String) -> DiscordMessage {
         guard let guild = client.guildForChannel(channelId), inVoiceChannel[guild.id] ?? false,
               let voiceEngine = client.voiceManager.voiceEngines[guild.id] else {
             return "Not in voice channel"
