@@ -238,8 +238,12 @@ class Shard : DiscordClientDelegate {
 
     func findChannel(from name: String, in guild: DiscordGuild? = nil) -> DiscordGuildChannel? {
         // We have a guild to narrow the search
-        if guild != nil, let channels = client.guilds[guild!.id]?.channels {
-            return channels.filter({ $0.value.name == name }).map({ $0.1 }).first
+        guard guild == nil else {
+            if let channels = client.guilds[guild!.id]?.channels {
+                return channels.filter({ $0.value.name == name }).map({ $0.1 }).first
+            } else {
+                return nil
+            }
         }
 
         // No guild, go through all the guilds
