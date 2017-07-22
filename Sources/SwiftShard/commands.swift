@@ -32,6 +32,7 @@ enum Command : String {
     case stats = "stats"
     case talk = "talk"
     case topic = "topic"
+    case translate = "translate"
     case youtube = "yt"
     case weather = "weather"
     case wolfram = "wolfram"

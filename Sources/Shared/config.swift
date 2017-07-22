@@ -30,3 +30,4 @@ public let userOverrides = [104753987663712256] as [UserID]
 public let authToken = "thislevelofsecurityiscrap"
 public let botHost = "127.0.0.1"
 public let cleverbotKey = ""
+public let googleKey = ""

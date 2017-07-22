@@ -93,6 +93,8 @@ extension Shard : CommandHandler {
             handleTalk(with: arguments, message: message)
         case .topic where arguments.count > 0:
             handleTopic(with: arguments, message: message)
+        case .translate where arguments.count > 0:
+            handleTranslation(with: arguments, message: message)
         case .stats:
             handleStats(with: arguments, message: message)
         case .weather where arguments.count > 0:
@@ -253,6 +255,58 @@ extension Shard : CommandHandler {
 
     func handleTopic(with arguments: [String], message: DiscordMessage) {
         message.channel?.modifyChannel(options: [.topic(arguments.joined(separator: " "))])
+    }
+
+    func handleTranslation(with arguments: [String], message: DiscordMessage) {
+        guard googleKey != "" else {
+            message.channel?.send("No google key")
+
+            return
+        }
+
+        guard let request = createPostRequest(for: "https://translation.googleapis.com/language/translate/v2?key=\(googleKey)",
+                                              postData: getTranslationData(arguments: arguments)) else {
+            message.channel?.send("Invalid translate request")
+
+            return
+        }
+
+        getRequestData(for: request) {data in
+            guard let data = data,
+                  let jsonString = String(data: data, encoding: .utf8) else {
+                message.channel?.send("Something went wrong with the request")
+
+                return
+            }
+
+            guard let jsonRes = decodeJSON(jsonString) as? [String: Any],
+                  let translationData = jsonRes["data"] as? [String: Any],
+                  let translations = translationData["translations"] as? [[String: Any]],
+                  let translation = translations.first?["translatedText"] as? String else {
+                print(jsonString)
+                message.channel?.send("Something went wrong with the request")
+
+                return
+            }
+
+            message.channel?.send(DiscordMessage(content: "```\(translation)```"))
+        }
+    }
+
+    private func getTranslationData(arguments: [String]) -> [String: String] {
+        let first = arguments.first!
+        var requestData = ["q": arguments.dropFirst().joined(separator: " ")]
+
+        if first.range(of: "->") != nil {
+            let languages = first.components(separatedBy: "->")
+
+            requestData["source"] = languages[0]
+            requestData["target"] = languages[1]
+        } else {
+            requestData["target"] = first
+        }
+
+        return requestData
     }
 
     func handleWeather(with arguments: [String], message: DiscordMessage) {

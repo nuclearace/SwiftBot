@@ -162,6 +162,22 @@ func createGetRequest(for string: String) -> URLRequest? {
     return request
 }
 
+func createPostRequest(for string: String, postData: [String: Any]?) -> URLRequest? {
+    guard let url = URL(string: string) else { return nil }
+
+    var request = URLRequest(url: url)
+
+    request.httpMethod = "POST"
+
+    if let postData = postData, let data = try? JSONSerialization.data(withJSONObject: postData) {
+        request.httpBody = data
+        request.setValue(String(data.count), forHTTPHeaderField: "Content-Length")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    }
+
+    return request
+}
+
 func getRequestData(for request: URLRequest, callback: @escaping (Data?) -> Void) {
     sharedSession.dataTask(with: request) {data, response, error in
         guard data != nil, error == nil, let response = response as? HTTPURLResponse,
