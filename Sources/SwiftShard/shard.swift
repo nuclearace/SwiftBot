@@ -79,6 +79,12 @@ class Shard : DiscordClientDelegate {
     func client(_ client: DiscordClient, didConnect reason: Bool) {
         connected = true
 
+        guard connectId >= 0 else {
+            print("Jump started shard connected. Shard #\(shardNum)")
+
+            return
+        }
+
         print("Shard #\(shardNum) connected")
 
         bot.sendResult(true, for: connectId)

@@ -16,15 +16,36 @@
 // DEALINGS IN THE SOFTWARE.
 
 import CoreFoundation
+import Dispatch
 import Foundation
 import Shared
 
 guard CommandLine.arguments.count == 3 else { fatalError("Not enough information to start") }
 
+let queue = DispatchQueue(label: "Async Read Shard")
 let shardNum = Int(CommandLine.arguments[1])!
 let totalShards = Int(CommandLine.arguments[2])!
 let fortuneExists = FileManager.default.fileExists(atPath: "/usr/local/bin/fortune")
 let shard = Shard(token: token, shardNum: shardNum, totalShards: totalShards)
+
+func readAsync() {
+    queue.async {
+        guard let input = readLine(strippingNewline: true) else { fatalError() }
+        let command = input.components(separatedBy: " ")
+
+        if command[0] == "die" {
+            shard.disconnect()
+        } else if command[0] == "jumpstart" {
+            shard.connect(id: -1, waitTime: 0)
+        } else if command[0] == "tryunorphan" {
+            shard.unorphan()
+        }
+
+        readAsync()
+    }
+}
+
+readAsync()
 
 shard.unorphan()
 
