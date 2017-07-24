@@ -43,9 +43,6 @@ class Shard : RemoteCallable {
 
         try self.pingSocket()
 
-        self.socket?.onPong = {p in
-            print("got pong")
-        }
         self.socket?.onText = {ws, text in
             do {
                 try self.handleMessage(text)

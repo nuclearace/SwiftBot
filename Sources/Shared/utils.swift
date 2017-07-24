@@ -92,8 +92,6 @@ public extension RemoteCallable {
     }
 
     func pingSocket() throws {
-        print("Sending ping \(shardNum)")
-
         try self.socket?.ping()
 
         DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 30) {
