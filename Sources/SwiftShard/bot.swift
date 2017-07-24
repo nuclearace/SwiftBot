@@ -50,7 +50,7 @@ class Bot : RemoteCallable {
         ]
 
         try WebSocket.background(to: "ws://\(botHost):42343",
-                                 using: TCPInternetSocket(scheme: "ws", hostname: "127.0.0.1", port: 42343),
+                                 using: TCPInternetSocket(scheme: "ws", hostname: botHost, port: 42343),
                                  headers: headers) {ws in
             print("Shard #\(self.shardNum) WebSocket connected!")
 
