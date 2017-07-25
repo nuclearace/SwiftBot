@@ -278,7 +278,7 @@ class Shard : DiscordClientDelegate {
 
         let fortune = Process()
         let pipe = Pipe()
-        var saying: String!
+        var saying: String?
 
         fortune.launchPath = "/usr/local/bin/fortune"
         fortune.standardOutput = pipe
@@ -293,7 +293,7 @@ class Shard : DiscordClientDelegate {
         fortune.launch()
         fortune.waitUntilExit()
 
-        return saying
+        return saying ?? "The Fortune does not look good"
     }
 
     func getRolesForUser(_ user: DiscordUser, on channelId: ChannelID) -> [DiscordRole] {
