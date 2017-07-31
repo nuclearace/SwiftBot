@@ -348,7 +348,7 @@ extension Shard : CommandHandler {
                 return
             }
 
-            let result = getSimpleWolframAnswer(forQuestion: arguments.joined(separator: "+"))
+            let result = getSimpleWolframAnswer(forQuestion: arguments.joined(separator: " "))
 
             message.channel?.send(DiscordMessage(content: result))
         }

@@ -27,6 +27,11 @@ func createFormatMessage(withStats stats: [String: Any]) -> DiscordEmbed {
         var timeString = ""
         var time = Int(seconds)
 
+        if time >= 86400 {
+            timeString += "Days: \(time / 86400) "
+            time %= 86400
+        }
+
         if time >= 3600 {
             timeString += "Hours: \(time / 3600) "
             time %= 3600

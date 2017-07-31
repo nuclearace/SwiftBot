@@ -23,14 +23,16 @@ func getSimpleWolframAnswer(forQuestion question: String) -> String {
     let escapedQuestion = question.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!
     let url = "http://api.wolframalpha.com/v1/query?appid=\(wolfram)&input=\(escapedQuestion)&output=json"
 
-    guard let json = doWolframRequest(withURL: url), let queryresult = json["queryresult"] as? [String: Any],
-            let success = queryresult["success"] as? Bool, success, let pods = queryresult["pods"] as? [[String: Any]]
-                else {
+    guard let json = doWolframRequest(withURL: url),
+          let queryresult = json["queryresult"] as? [String: Any],
+          let success = queryresult["success"] as? Bool,
+          success,
+          let pods = queryresult["pods"] as? [[String: Any]] else {
         return "Failed to get from wolfram"
     }
 
     if let primaryPod = pods.filter({ $0["primary"] as? Bool ?? false }).first,
-            let subpods = primaryPod["subpods"] as? [[String: Any]] {
+       let subpods = primaryPod["subpods"] as? [[String: Any]] {
         return "```\(subpods[0]["plaintext"] ?? "LOL IDK")```"
     } else {
         var noAnswerAnswer = "```Wolfram couldn't think of a primary answer, so here's what it said:\n\n"
