@@ -25,7 +25,7 @@ private let sharedSession = URLSession(configuration: .default, delegate: nil, d
 func createFormatMessage(withStats stats: [String: Any]) -> DiscordEmbed {
     func uptimeString(fromSeconds seconds: Double) -> String {
         var timeString = ""
-        var time = Int(seconds)
+        var time = UInt64(seconds)
 
         if time >= 86400 {
             timeString += "Days: \(time / 86400) "
