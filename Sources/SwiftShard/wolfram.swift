@@ -20,7 +20,7 @@ import Foundation
 import Shared
 
 func getSimpleWolframAnswer(forQuestion question: String) -> String {
-    let escapedQuestion = question.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!
+    let escapedQuestion = question.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
     let url = "http://api.wolframalpha.com/v1/query?appid=\(wolfram)&input=\(escapedQuestion)&output=json"
 
     guard let json = doWolframRequest(withURL: url),
@@ -39,7 +39,7 @@ func getSimpleWolframAnswer(forQuestion question: String) -> String {
         var i = 1
 
         for subpod in pods.flatMap({ $0["subpods"] as? [[String: Any]] ?? [] }) {
-            guard i < 5 else { break }
+            guard i < 6 else { break }
             guard let plaintext = subpod["plaintext"] as? String else { continue }
 
             noAnswerAnswer += "\(i) | \(plaintext)\n"
