@@ -20,13 +20,14 @@ import Dispatch
 import Foundation
 import Shared
 
-guard CommandLine.arguments.count == 3 else { fatalError("Not enough information to start") }
+guard CommandLine.arguments.count >= 3 else { fatalError("Not enough information to start") }
 
 let queue = DispatchQueue(label: "Async Read Shard")
 let shardNum = Int(CommandLine.arguments[1])!
 let totalShards = Int(CommandLine.arguments[2])!
 let fortuneExists = FileManager.default.fileExists(atPath: "/usr/local/bin/fortune")
 let shard = Shard(token: token, shardNum: shardNum, totalShards: totalShards)
+let jumpstart = CommandLine.arguments.contains("jumpstart") || CommandLine.arguments.contains("j")
 
 func readAsync() {
     queue.async {
@@ -48,5 +49,9 @@ func readAsync() {
 readAsync()
 
 shard.unorphan()
+
+if jumpstart {
+    shard.connect(id: -1, waitTime: 0)
+}
 
 CFRunLoopRun()
