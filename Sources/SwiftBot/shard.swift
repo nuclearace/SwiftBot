@@ -27,7 +27,7 @@ class Shard : RemoteCallable {
     weak var manager: SwiftBot?
     var currentCall = 0
     var socket: WebSocket?
-    var waitingCalls = [Int: (Any) throws -> Void]()
+    var waitingCalls = [Int: (Any) throws -> ()]()
 
     init(manager: SwiftBot, shardNum: Int, socket: WebSocket? = nil) throws {
         self.manager = manager

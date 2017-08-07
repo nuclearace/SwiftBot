@@ -31,13 +31,13 @@ public protocol RemoteCallable : class {
     var currentCall: Int { get set }
     var shardNum: Int { get }
     var socket: WebSocket? { get set }
-    var waitingCalls: [Int: (Any) throws -> Void] { get set }
+    var waitingCalls: [Int: (Any) throws -> ()] { get set }
 
     /**
         Invokes `method` on the target, returns the id of the call. Which will be used to match a result.
     */
     func call(_ method: String, withParams params: [String: Any],
-        onComplete complete: ((Any) throws -> Void)?) rethrows -> Int
+        onComplete complete: ((Any) throws -> ())?) rethrows -> Int
     func handleTransportError(_ error: Error)
     func handleRemoteCall(_ method: String, withParams params: [String: Any], id: Int?) throws
     func sendResult(_ result: Any, for id: Int) throws
@@ -46,7 +46,7 @@ public protocol RemoteCallable : class {
 public extension RemoteCallable {
     @discardableResult
     func call(_ method: String, withParams params: [String: Any] = [:],
-            onComplete complete: ((Any) throws -> Void)? = nil) -> Int {
+            onComplete complete: ((Any) throws -> ())? = nil) -> Int {
         waitingCalls[currentCall] = complete
 
         let callData: [String: Any] = [

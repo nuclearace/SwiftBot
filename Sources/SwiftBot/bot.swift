@@ -72,7 +72,7 @@ class SwiftBot : Responder {
         }
     }
 
-    func callAll(_ method: String, params: [String: Any] = [:], complete: ((Any) throws -> Void)? = nil) {
+    func callAll(_ method: String, params: [String: Any] = [:], complete: ((Any) throws -> ())? = nil) {
         for (_, shard) in shards {
             shard.call(method, withParams: params, onComplete: complete)
         }
@@ -139,7 +139,7 @@ class SwiftBot : Responder {
         shards[shard] = try! Shard(manager: self, shardNum: shard)
     }
 
-    private func handleStat(callNum: Int, shardNum: Int) -> (Any) throws -> Void {
+    private func handleStat(callNum: Int, shardNum: Int) -> (Any) throws -> () {
         waitingForStats = true
 
         return {stat in

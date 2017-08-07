@@ -54,7 +54,7 @@ class Shard : DiscordClientDelegate {
     private var connectId = -1
     private var heartbeatInterval = -1
     private var pongsMissed = 0
-    private var statsCallbacks = [([String: Any]) -> Void]()
+    private var statsCallbacks = [([String: Any]) -> ()]()
     private var waitingForStats = false
 
     init(token: DiscordToken, shardNum: Int, totalShards: Int) {
@@ -310,7 +310,7 @@ class Shard : DiscordClientDelegate {
         return []
     }
 
-    func getStats(callback: @escaping ([String: Any]) -> Void) {
+    func getStats(callback: @escaping ([String: Any]) -> ()) {
         guard !orphaned else {
             callback(calculateStats())
 

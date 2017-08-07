@@ -75,7 +75,7 @@ class Bot : RemoteCallable {
         try shard?.handleRemoteCall(method, withParams: params, id: id)
     }
 
-    func tokenCall(_ type: TokenCall, postCall: @escaping (Bool) -> Void) {
+    func tokenCall(_ type: TokenCall, postCall: @escaping (Bool) -> ()) {
         call(type.rawValue) {canExecute in
             guard let canExecute = canExecute as? Bool else { return postCall(false) }
 
