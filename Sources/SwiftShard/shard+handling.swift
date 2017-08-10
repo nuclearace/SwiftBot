@@ -200,7 +200,7 @@ extension Shard : CommandHandler {
                 return
             }
 
-            message.channel?.send(DiscordMessage(content: "", embeds: [embed]))
+            message.channel?.send(DiscordMessage(content: "", embed: embed))
         }
     }
 
@@ -229,7 +229,7 @@ extension Shard : CommandHandler {
 
     func handleStats(with arguments: [String], message: DiscordMessage) {
         getStats {stats in
-            message.channel?.send(DiscordMessage(content: "", embeds: [createFormatMessage(withStats: stats)]))
+            message.channel?.send(DiscordMessage(content: "", embed: createFormatMessage(withStats: stats)))
         }
     }
 
@@ -330,7 +330,7 @@ extension Shard : CommandHandler {
                 return
             }
 
-            message.channel?.send(DiscordMessage(content: "", embeds: [embed]))
+            message.channel?.send(DiscordMessage(content: "", embed: embed))
         }
     }
 
