@@ -180,7 +180,7 @@ class Shard : DiscordClientDelegate {
                                      image: DiscordEmbed.Image(url: URL(string: "attachment://brutalized.png")!))
             let file = DiscordFileUpload(data: outputData, filename: "brutalized.png", mimeType: "image/png")
 
-            channel.send(DiscordMessage(content: "", embed: embed, file: file))
+            channel.send(DiscordMessage(content: "", embed: embed, files: [file]))
         }
         #else
         channel.send("Not available on Linux")
