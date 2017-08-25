@@ -221,7 +221,7 @@ extension Shard : CommandHandler {
         }
 
         do {
-            try client.voiceManager.voiceEngines[message.channel?.guild?.id ?? 0]?.requestNewEncoder()
+            try client.voiceManager.voiceEngines[message.channel?.guild?.id ?? 0]?.requestNewDataSource()
         } catch {
             message.channel?.send("Something went wrong trying to skip")
         }
