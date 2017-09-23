@@ -19,14 +19,19 @@ import CoreFoundation
 import Dispatch
 import Foundation
 import Shared
+import SwiftDiscord
 
 guard CommandLine.arguments.count >= 3 else { fatalError("Not enough information to start") }
 
 let queue = DispatchQueue(label: "Async Read Shard")
-let shardNum = Int(CommandLine.arguments[1])!
+let shardRange = CommandLine.arguments[1].components(separatedBy: "..<").flatMap(Int.init)
 let totalShards = Int(CommandLine.arguments[2])!
 let fortuneExists = FileManager.default.fileExists(atPath: "/usr/local/bin/fortune")
-let shard = Shard(token: token, shardNum: shardNum, totalShards: totalShards)
+
+guard shardRange.count == 2 else { fatalError("Not incorrect shard range must be n..<m") }
+
+let shardInfo = try DiscordShardInformation(shardRange: shardRange[0]..<shardRange[1], totalShards: totalShards)
+let shard = Shard(token: token, shardingInfo: shardInfo)
 let jumpstart = CommandLine.arguments.contains("jumpstart") || CommandLine.arguments.contains("j")
 
 func readAsync() {

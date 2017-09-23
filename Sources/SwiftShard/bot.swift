@@ -38,15 +38,19 @@ class Bot : RemoteCallable {
     var socket: WebSocket?
     var waitingCalls = [Int: (Any) throws -> ()]()
 
-    init(shard: Shard, shardNum: Int) {
+    private let shardCount: Int
+
+    init(shard: Shard, shardNum: Int, shardCount: Int) {
         self.shard = shard
         self.shardNum = shardNum
+        self.shardCount = shardCount
     }
 
     func identify() throws {
         let headers: [HeaderKey: String] = [
+            HeaderKey("shardCount"): String(self.shardCount),
             HeaderKey("shard"): String(self.shardNum),
-            HeaderKey("pw"): "\(authToken)\(self.shardNum)".sha3(.sha512)
+            HeaderKey("pw"): "\(authToken)\(self.shardNum)".sha3(.sha512),
         ]
 
         try WebSocket.background(to: "ws://\(botHost):42343",

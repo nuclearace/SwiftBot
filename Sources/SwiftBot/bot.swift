@@ -52,7 +52,7 @@ class SwiftBot : Responder {
         masterServer = try TCPServer(TCPInternetSocket(InternetAddress(hostname: botHost, port: 42343)))
     }
 
-    func attachSocketToBot(_ socket: WebSocket, shard: Int) throws {
+    func attachSocketToBot(_ socket: WebSocket, shard: Int, shardCount: Int) throws {
         if let shard = shards[shard] {
             print("Add socket to shard #\(shard.shardNum)")
 
@@ -63,7 +63,7 @@ class SwiftBot : Responder {
 
         shards[shard]?.call("setup", withParams: ["heartbeatInterval": 50])
 
-        authenticatedShards += 1
+        authenticatedShards += shardCount
 
         if authenticatedShards == numberOfShards {
             print("Shards are launched, type 'connect' to start them. Or 'connect shard \(shard)' to launch just this shard")
@@ -149,7 +149,9 @@ class SwiftBot : Responder {
 
             self.stats.append(stat)
 
-            guard self.stats.count == numberOfShards else { return }
+            /// TODO handle case when x shard are dead
+            /// TODO this is probably suspect
+            guard self.stats.count == self.shards.count else { return }
 
             self.sendStats(callNum, shardNum: shardNum)
         }
@@ -183,6 +185,7 @@ class SwiftBot : Responder {
 
         // Before a bot starts up, it should identify itself
         guard let shard = Int(request.headers["shard"]!),
+              let shardCount = Int(request.headers["shardCount"]!),
               let pw = request.headers["pw"], pw == "\(authToken)\(shard)".sha3(.sha512) else {
             throw SwiftBotError.authenticationFailure
         }
@@ -190,7 +193,7 @@ class SwiftBot : Responder {
         return try request.upgradeToWebSocket {ws in
             print("Upgraded shard #\(shard) socket to WebSockets")
 
-            try self.attachSocketToBot(ws, shard: shard)
+            try self.attachSocketToBot(ws, shard: shard, shardCount: shardCount)
         }
     }
 

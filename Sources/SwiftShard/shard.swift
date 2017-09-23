@@ -42,8 +42,7 @@ class Shard : DiscordClientDelegate {
     let cleverbot = Cleverbot(apiKey: cleverbotKey)
     var client: DiscordClient!
     let startTime = Date()
-    let shardNum: Int
-    let totalShards: Int
+    let shardingInfo: DiscordShardInformation
 
     var connected = false
     var inVoiceChannel = [ChannelID: Bool]()
@@ -51,24 +50,31 @@ class Shard : DiscordClientDelegate {
     var playingYoutube = [ChannelID: Bool]()
     var youtubeQueue = [ChannelID: [QueuedVideo]]()
 
+    var shardNum: Int {
+        return shardingInfo.shardRange.first!
+    }
+
+    var totalShards: Int {
+        return shardingInfo.totalShards
+    }
+
     private var connectId = -1
     private var heartbeatInterval = -1
     private var pongsMissed = 0
     private var statsCallbacks = [([String: Any]) -> ()]()
     private var waitingForStats = false
 
-    init(token: DiscordToken, shardNum: Int, totalShards: Int) {
-        self.shardNum = shardNum
-        self.totalShards = totalShards
+    init(token: DiscordToken, shardingInfo: DiscordShardInformation) {
+        self.shardingInfo = shardingInfo
 
         client = DiscordClient(token: token, delegate: self, configuration: [
-            .log(.none),
-            .singleShard(DiscordShardInformation(shardNum: shardNum, totalShards: totalShards)),
+            .log(.info),
+            .shardingInfo(shardingInfo),
             .fillUsers,
             .pruneUsers
         ])
 
-        bot = Bot(shard: self, shardNum: shardNum)
+        bot = Bot(shard: self, shardNum: shardNum, shardCount: shardingInfo.shardRange.count)
     }
 
     func clearStats() {
