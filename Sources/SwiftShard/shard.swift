@@ -42,6 +42,7 @@ class Shard : DiscordClientDelegate {
     let cleverbot = Cleverbot(apiKey: cleverbotKey)
     var client: DiscordClient!
     let startTime = Date()
+    let adoptLimiter = RateLimiter(tokensPerInterval: 5, interval: "minute", firesImmediatly: true)
     let shardingInfo: DiscordShardInformation
 
     var connected = false
@@ -409,11 +410,15 @@ class Shard : DiscordClientDelegate {
     func setupOrphanedShard() {
         guard !orphaned else { return }
 
-        print("Putting shard #\(shardNum) into orphaned mode")
+        adoptLimiter.removeTokens(1) {err, tokens in
+            guard let tokens = tokens, tokens > 0 else { fatalError("Trying to unorphan too quickly") }
 
-        orphaned = true
+            print("Putting shard #\(self.shardNum) into orphaned mode")
 
-        unorphan()
+            self.orphaned = true
+
+            self.unorphan()
+        }
     }
 
     private func setup(with params: [String: Any]) {

@@ -72,7 +72,7 @@ class Bot : RemoteCallable {
             self.socket?.onClose = {[weak self] _, _, reason, clean in
                 guard let this = self else { return }
 
-                print("Shard #\(this.shardNum) disconnected")
+                print("Shard #\(this.shardNum) disconnected. reason: \(reason ?? "unknown"); clean: \(clean)")
 
                 DispatchQueue.main.async {
                     this.shard?.setupOrphanedShard()

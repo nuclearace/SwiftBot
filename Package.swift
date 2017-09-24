@@ -17,7 +17,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "SwiftShard", dependencies: ["SwiftDiscord", "Shared", "CryptoSwift", "Cleverbot",
-                                                   "Cropper"]),
+                                                   "Cropper", "SwiftRateLimiter"]),
         .target(name: "SwiftBot", dependencies: ["SwiftDiscord", "Shared", "CryptoSwift", "SwiftRateLimiter"]),
         .target(name: "Shared", dependencies: ["SwiftDiscord"])
     ]
