@@ -58,7 +58,7 @@ class SwiftBot : Responder {
 
             try shard.attachSocket(socket)
         } else {
-            shards[shard] = try Shard(manager: self, shardNum: shard, socket: socket)
+            shards[shard] = try Shard(manager: self, shardNum: shard, shardCount: shardCount, socket: socket)
         }
 
         shards[shard]?.call("setup", withParams: ["heartbeatInterval": 50])
@@ -107,36 +107,6 @@ class SwiftBot : Responder {
         print("Commanding shard #\(shard) to die")
 
         shards[shard]?.call("die")
-    }
-
-    func launch(shard: Int) {
-        let shardProccess = Process()
-
-        shardProccess.launchPath = botProcessLocation
-        shardProccess.arguments = ["\(shard)", "\(numberOfShards)"]
-        shardProccess.terminationHandler = {process in
-            print("Shard #\(shard) died")
-
-            guard self.killingShards else {
-                print("Restarting it")
-
-                DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 5) {
-                    self.launch(shard: shard)
-                }
-
-                return
-            }
-
-            self.shutdownShards += 1
-
-            if self.shutdownShards == self.shards.count {
-                exit(0)
-            }
-        }
-
-        shardProccess.launch()
-
-        shards[shard] = try! Shard(manager: self, shardNum: shard)
     }
 
     private func handleStat(callNum: Int, shardNum: Int) -> (Any) throws -> () {
@@ -224,12 +194,6 @@ class SwiftBot : Responder {
         killingShards = true
 
         callAll("die")
-    }
-
-    func start() {
-        for i in 0..<numberOfShards {
-            launch(shard: i)
-        }
     }
 
     private func tryRemoveToken(from limiter: RateLimiter, callNum: Int, shardNum: Int) {

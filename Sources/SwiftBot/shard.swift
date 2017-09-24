@@ -22,6 +22,7 @@ import Sockets
 import WebSockets
 
 class Shard : RemoteCallable {
+    let shardCount: Int
     let shardNum: Int
 
     weak var manager: SwiftBot?
@@ -29,7 +30,8 @@ class Shard : RemoteCallable {
     var socket: WebSocket?
     var waitingCalls = [Int: (Any) throws -> ()]()
 
-    init(manager: SwiftBot, shardNum: Int, socket: WebSocket? = nil) throws {
+    init(manager: SwiftBot, shardNum: Int, shardCount: Int, socket: WebSocket? = nil) throws {
+        self.shardCount = shardCount
         self.manager = manager
         self.shardNum = shardNum
 
@@ -43,11 +45,24 @@ class Shard : RemoteCallable {
 
         try self.pingSocket()
 
-        self.socket?.onText = {ws, text in
+        self.socket?.onText = {[weak self] ws, text in
+            guard let this = self else { return }
+
             do {
-                try self.handleMessage(text)
+                try this.handleMessage(text)
             } catch let err {
-                self.handleTransportError(err)
+                this.handleTransportError(err)
+            }
+        }
+
+        self.socket?.onClose = {[weak self] _, _, reason, clean in
+            guard let this = self else { return }
+
+            print("Shard #\(this.shardNum) disconnected")
+
+            DispatchQueue.main.async {
+                this.manager?.authenticatedShards -= this.shardCount
+                this.manager?.shards[this.shardNum] = nil
             }
         }
     }

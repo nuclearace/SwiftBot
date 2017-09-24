@@ -40,8 +40,6 @@ func readAsync() {
             bot.connect(shard: shardNum)
         } else if command[0] == "connect", command.count == 1 {
             bot.connect()
-        } else if command[0] == "start" {
-            bot.start()
         }
 
         readAsync()
