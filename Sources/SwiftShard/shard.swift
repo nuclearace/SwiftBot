@@ -389,6 +389,7 @@ class Shard : DiscordClientDelegate {
 
     private func sendPing() {
         guard pongsMissed < 2, !orphaned else {
+            print("Missed too many pings. Shard #\(shardNum)")
             setupOrphanedShard()
 
             return
@@ -428,6 +429,7 @@ class Shard : DiscordClientDelegate {
 
         self.heartbeatInterval = heartbeatInterval
         orphaned = false
+        pongsMissed = 0
 
         sendPing()
     }
