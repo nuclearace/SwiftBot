@@ -28,7 +28,7 @@ let shardRange = CommandLine.arguments[1].components(separatedBy: "..<").flatMap
 let totalShards = Int(CommandLine.arguments[2])!
 let fortuneExists = FileManager.default.fileExists(atPath: "/usr/local/bin/fortune")
 
-guard shardRange.count == 2 else { fatalError("Not incorrect shard range must be n..<m") }
+guard shardRange.count == 2 else { fatalError("Incorrect shard range. Must be n..<m") }
 
 let shardInfo = try DiscordShardInformation(shardRange: shardRange[0]..<shardRange[1], totalShards: totalShards)
 let shard = Shard(token: token, shardingInfo: shardInfo)
