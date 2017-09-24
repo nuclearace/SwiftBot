@@ -94,7 +94,7 @@ public extension RemoteCallable {
     func pingSocket() throws {
         try self.socket?.ping()
 
-        DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 30) {[weak self] in
+        DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 20) {[weak self] in
             guard let this = self else { return }
 
             do {
