@@ -119,7 +119,6 @@ class SwiftBot : Responder {
 
             self.stats.append(stat)
 
-            /// TODO handle case when x shard are dead
             /// TODO this is probably suspect
             guard self.stats.count == self.shards.count else { return }
 
