@@ -59,11 +59,23 @@ class Bot : RemoteCallable {
             print("Shard #\(self.shardNum) WebSocket connected!")
 
             self.socket = ws
-            self.socket?.onText = {ws, text in
+            self.socket?.onText = {[weak self] ws, text in
+                guard let this = self else { return }
+
                 do {
-                    try self.handleMessage(text)
+                    try this.handleMessage(text)
                 } catch let err {
-                    self.handleTransportError(err)
+                    this.handleTransportError(err)
+                }
+            }
+
+            self.socket?.onClose = {[weak self] _, _, reason, clean in
+                guard let this = self else { return }
+
+                print("Shard #\(this.shardNum) disconnected")
+
+                DispatchQueue.main.async {
+                    this.shard?.setupOrphanedShard()
                 }
             }
         }

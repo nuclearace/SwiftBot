@@ -25,14 +25,14 @@ class Shard : RemoteCallable {
     let shardCount: Int
     let shardNum: Int
 
-    weak var manager: SwiftBot?
+    weak var bot: SwiftBot?
     var currentCall = 0
     var socket: WebSocket?
     var waitingCalls = [Int: (Any) throws -> ()]()
 
     init(manager: SwiftBot, shardNum: Int, shardCount: Int, socket: WebSocket? = nil) throws {
         self.shardCount = shardCount
-        self.manager = manager
+        self.bot = manager
         self.shardNum = shardNum
 
         if socket != nil {
@@ -61,8 +61,8 @@ class Shard : RemoteCallable {
             print("Shard #\(this.shardNum) disconnected")
 
             DispatchQueue.main.async {
-                this.manager?.authenticatedShards -= this.shardCount
-                this.manager?.shards[this.shardNum] = nil
+                this.bot?.authenticatedShards -= this.shardCount
+                this.bot?.shards[this.shardNum] = nil
             }
         }
     }
@@ -72,6 +72,6 @@ class Shard : RemoteCallable {
     }
 
     func handleRemoteCall(_ method: String, withParams params: [String: Any], id: Int?) throws {
-        try manager?.handleRemoteCall(method, withParams: params, id: id, shardNum: shardNum)
+        try bot?.handleRemoteCall(method, withParams: params, id: id, shardNum: shardNum)
     }
 }
