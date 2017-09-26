@@ -81,7 +81,7 @@ extension Shard : CommandHandler {
             handleLeave(with: arguments, message: message)
         case .is:
             handleIs(with: arguments, message: message)
-        case .youtube where arguments.count == 1:
+        case .youtube where arguments.count >= 1:
             handleYoutube(with: arguments, message: message)
         case .fortune:
             handleFortune(with: arguments, message: message)
@@ -355,7 +355,15 @@ extension Shard : CommandHandler {
     }
 
     func handleYoutube(with arguments: [String], message: DiscordMessage) {
-        message.channel?.send(playYoutube(channelId: message.channelId, link: arguments[0]))
+        guard let member = message.guildMember else {
+            message.channel?.send("I don't know what guild I'm in.")
+
+            return
+        }
+
+        let playNext = arguments.contains("next") && member.hasRole("DJ")
+
+        message.channel?.send(playYoutube(channelId: message.channelId, link: arguments[0], playNext: playNext))
     }
 }
 
@@ -365,7 +373,7 @@ fileprivate extension Shard {
             return .notFound
         }
 
-        guard let member = channel.guild?.members[message.author.id], channel.canMember(member, .moveMembers) else {
+        guard let member = message.guildMember, channel.canMember(member, .moveMembers) else {
             return .permissionFail
         }
 

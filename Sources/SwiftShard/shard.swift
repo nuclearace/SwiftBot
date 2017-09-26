@@ -285,7 +285,7 @@ class Shard : DiscordClientDelegate {
 
         let fortune = Process()
         let pipe = Pipe()
-        var saying: String?
+        var saying = "The Fortune does not look good"
 
         fortune.launchPath = "/usr/local/bin/fortune"
         fortune.standardOutput = pipe
@@ -300,7 +300,7 @@ class Shard : DiscordClientDelegate {
         fortune.launch()
         fortune.waitUntilExit()
 
-        return saying ?? "The Fortune does not look good"
+        return saying
     }
 
     func getRolesForUser(_ user: DiscordUser, on channelId: ChannelID) -> [DiscordRole] {
@@ -363,15 +363,19 @@ class Shard : DiscordClientDelegate {
         }
     }
 
-    func playYoutube(channelId: ChannelID, link: String) -> DiscordMessage {
+    func playYoutube(channelId: ChannelID, link: String, playNext: Bool = false) -> DiscordMessage {
         guard let guild = client.guildForChannel(channelId), inVoiceChannel[guild.id] ?? false,
               let voiceEngine = client.voiceManager.voiceEngines[guild.id] else {
             return "Not in voice channel"
         }
-        guard !(playingYoutube[guild.id] ?? true) else {
-            youtubeQueue[guild.id]?.append((link, channelId))
 
-            return DiscordMessage(content: "Video Queued. \(youtubeQueue[guild.id]?.count ?? -10000) videos in queue")
+        guard !(playingYoutube[guild.id] ?? true) else {
+            let insertLocation = playNext ? 0 : youtubeQueue[guild.id]?.count ?? 0
+
+            youtubeQueue[guild.id]?.insert((link, channelId), at: insertLocation)
+
+            return DiscordMessage(content: "Video Queued\(playNext ? " Next" : ""). " +
+                                           "\(youtubeQueue[guild.id]?.count ?? -10000) videos in queue")
         }
 
         playingYoutube[guild.id] = true
