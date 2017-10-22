@@ -19,49 +19,42 @@ import Dispatch
 import Foundation
 import Shared
 
-func getForecastData(forLocation location: String) -> [String: Any]? {
+func getForecastData(forLocation location: String, callback: @escaping ([String: Any]?) -> ()) {
     let escapedLocation = location.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!
     let stringUrl = "https://api.wunderground.com/api/\(weather)/conditions/forecast/q/\(escapedLocation).json"
-    let weatherUndergroundData = getWeatherUndergroundData(withURL: stringUrl) as? [String: Any]
 
-    return weatherUndergroundData
+    getWeatherUndergroundData(withURL: stringUrl, callback: {data in
+        callback(data as? [String: Any])
+    })
 }
 
-func getWeatherData(forLocation location: String) -> [String: Any]? {
+func getWeatherData(forLocation location: String, callback: @escaping ([String: Any]?) -> ()) {
     let escapedLocation = location.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!
     let stringUrl = "https://api.wunderground.com/api/\(weather)/conditions/q/\(escapedLocation).json"
-    let weatherUndergroundData = getWeatherUndergroundData(withURL: stringUrl) as? [String: Any]
 
-    return weatherUndergroundData?["current_observation"] as? [String: Any]
+    getWeatherUndergroundData(withURL: stringUrl, callback: {data in
+        let weatherUndergroundData = data as? [String: Any]
+
+        callback(weatherUndergroundData?["current_observation"] as? [String: Any])
+    })
 }
 
-private func getWeatherUndergroundData(withURL url: String) -> Any? {
+private func getWeatherUndergroundData(withURL url: String, callback: @escaping (Any?) -> ()) {
     guard let request = createGetRequest(for: url) else {
-        return nil
+        return callback(nil)
     }
-
-    let lock = DispatchSemaphore(value: 0)
-    var weatherData: Any?
 
     getRequestData(for: request) {data in
         guard let data = data else {
-            lock.signal()
-
-            return
+            return callback(nil)
         }
 
         guard let json = try? JSONSerialization.jsonObject(with: data, options: .mutableContainers) else {
-            lock.signal()
+            callback(nil)
 
             return
         }
 
-        weatherData = json
-
-        lock.signal()
+        callback(json)
     }
-
-    lock.wait()
-
-    return weatherData
 }

@@ -19,64 +19,52 @@ import Dispatch
 import Foundation
 import Shared
 
-func getSimpleWolframAnswer(forQuestion question: String) -> String {
+func getSimpleWolframAnswer(forQuestion question: String, callback: @escaping (String) -> ()) {
     let escapedQuestion = question.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
     let url = "http://api.wolframalpha.com/v1/query?appid=\(wolfram)&input=\(escapedQuestion)&output=json"
 
-    guard let json = doWolframRequest(withURL: url),
-          let queryresult = json["queryresult"] as? [String: Any],
-          let success = queryresult["success"] as? Bool,
-          success,
-          let pods = queryresult["pods"] as? [[String: Any]] else {
-        return "Failed to get from wolfram"
-    }
-
-    if let primaryPod = pods.filter({ $0["primary"] as? Bool ?? false }).first,
-       let subpods = primaryPod["subpods"] as? [[String: Any]] {
-        return "```\(subpods[0]["plaintext"] ?? "LOL IDK")```"
-    } else {
-        var noAnswerAnswer = "```Wolfram couldn't think of a primary answer, so here's what it said:\n\n"
-        var i = 1
-
-        for subpod in pods.flatMap({ $0["subpods"] as? [[String: Any]] ?? [] }) {
-            guard i < 6 else { break }
-            guard let plaintext = subpod["plaintext"] as? String else { continue }
-
-            noAnswerAnswer += "\(i) | \(plaintext)\n"
-            i += 1
+    doWolframRequest(withURL: url) {wolframData in
+        guard let json = wolframData,
+              let queryresult = json["queryresult"] as? [String: Any],
+              let success = queryresult["success"] as? Bool, success,
+              let pods = queryresult["pods"] as? [[String: Any]] else {
+            return callback("Failed to get from wolfram")
         }
 
-        return noAnswerAnswer + "```"
+        if let primaryPod = pods.filter({ $0["primary"] as? Bool ?? false }).first,
+           let subpods = primaryPod["subpods"] as? [[String: Any]] {
+            return callback("```\(subpods[0]["plaintext"] ?? "LOL IDK")```")
+        } else {
+            var noAnswerAnswer = "```Wolfram couldn't think of a primary answer, so here's what it said:\n\n"
+            var i = 1
+
+            for subpod in pods.flatMap({ $0["subpods"] as? [[String: Any]] ?? [] }) {
+                guard i < 6 else { break }
+                guard let plaintext = subpod["plaintext"] as? String else { continue }
+
+                noAnswerAnswer += "\(i) | \(plaintext)\n"
+                i += 1
+            }
+
+            return callback(noAnswerAnswer + "```")
+        }
     }
 }
 
-private func doWolframRequest(withURL url: String) -> [String: Any]? {
+private func doWolframRequest(withURL url: String, callback: @escaping ([String: Any]?) -> ()) {
     guard let request = createGetRequest(for: url) else {
-        return nil
+        return callback(nil)
     }
-
-    let lock = DispatchSemaphore(value: 0)
-    var wolframData: [String: Any]?
 
     getRequestData(for: request) {data in
         guard let data = data else {
-            lock.signal()
-
-            return
+            return callback(nil)
         }
 
         guard let json = try? JSONSerialization.jsonObject(with: data, options: .mutableContainers) else {
-            lock.signal()
-
-            return
+            return callback(nil)
         }
 
-        wolframData = json as? [String: Any]
-
-        lock.signal()
+        callback(json as? [String: Any])
     }
-
-    lock.wait()
-
-    return wolframData
 }

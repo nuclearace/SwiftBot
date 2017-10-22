@@ -186,12 +186,12 @@ func createPostRequest(for string: String, postData: [String: Any]?) -> URLReque
 func getRequestData(for request: URLRequest, callback: @escaping (Data?) -> ()) {
     sharedSession.dataTask(with: request) {data, response, error in
         guard data != nil, error == nil, let response = response as? HTTPURLResponse,
-                response.statusCode == 200 else {
-            callback(nil)
+              response.statusCode == 200 else {
+            DispatchQueue.main.async { callback(nil) }
 
             return
         }
 
-        callback(data!)
+        DispatchQueue.main.async { callback(data!) }
     }.resume()
 }

@@ -26,6 +26,32 @@ enum VoiceChannelCheckResult {
 }
 
 extension Shard : CommandHandler {
+    private func fetchForecast(location: String, tomorrow: Bool, message: DiscordMessage) {
+        getForecastData(forLocation: location) {forecastData in
+            guard let forecast = forecastData,
+                  let embed = createForecastEmbed(withForecastData: forecast, tomorrow: tomorrow) else {
+                message.channel?.send("Something went wrong with getting the forecast data")
+
+                return
+            }
+
+            message.channel?.send(DiscordMessage(content: "", embed: embed))
+        }
+    }
+
+    private func fetchWeatherData(arguments: [String], message: DiscordMessage) {
+        getWeatherData(forLocation: arguments.joined(separator: " ")) {weatherData in
+            guard let weatherData = weatherData,
+                  let embed = createWeatherEmbed(withWeatherData: weatherData) else {
+                message.channel?.send("Something went wrong with getting the weather data")
+
+                return
+            }
+
+            message.channel?.send(DiscordMessage(content: "", embed: embed))
+        }
+    }
+
     func handleAsk(with arguments: [String], message: DiscordMessage) {
         let randomNum: Int
 
@@ -193,14 +219,7 @@ extension Shard : CommandHandler {
                 return
             }
 
-            guard let forecast = getForecastData(forLocation: location),
-                  let embed = createForecastEmbed(withForecastData: forecast, tomorrow: tomorrow) else {
-                message.channel?.send("Something went wrong with getting the forecast data")
-
-                return
-            }
-
-            message.channel?.send(DiscordMessage(content: "", embed: embed))
+            self.fetchForecast(location: location, tomorrow: tomorrow, message: message)
         }
     }
 
@@ -283,7 +302,6 @@ extension Shard : CommandHandler {
                   let translationData = jsonRes["data"] as? [String: Any],
                   let translations = translationData["translations"] as? [[String: Any]],
                   let translation = translations.first?["translatedText"] as? String else {
-                print(jsonString)
                 message.channel?.send("Something went wrong with the request")
 
                 return
@@ -323,14 +341,7 @@ extension Shard : CommandHandler {
                 return
             }
 
-            guard let weatherData = getWeatherData(forLocation: arguments.joined(separator: " ")),
-                  let embed = createWeatherEmbed(withWeatherData: weatherData) else {
-                message.channel?.send("Something went wrong with getting the weather data")
-
-                return
-            }
-
-            message.channel?.send(DiscordMessage(content: "", embed: embed))
+            self.fetchWeatherData(arguments: arguments, message: message)
         }
     }
 
@@ -348,9 +359,9 @@ extension Shard : CommandHandler {
                 return
             }
 
-            let result = getSimpleWolframAnswer(forQuestion: arguments.joined(separator: " "))
-
-            message.channel?.send(DiscordMessage(content: result))
+            getSimpleWolframAnswer(forQuestion: arguments.joined(separator: " ")) {answer in
+                message.channel?.send(DiscordMessage(content: answer))
+            }
         }
     }
 
