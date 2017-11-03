@@ -345,7 +345,7 @@ class Shard : DiscordClientDelegate {
     private func handleMessage(_ message: DiscordMessage) {
         guard message.content.hasPrefix("$") else { return }
 
-        let commandArgs = String(message.content.characters.dropFirst()).components(separatedBy: " ")
+        let commandArgs = String(message.content.dropFirst()).components(separatedBy: " ")
         let command = commandArgs[0]
 
         handleCommand(command.lowercased(), with: Array(commandArgs.dropFirst()), message: message)
