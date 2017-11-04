@@ -46,10 +46,8 @@ class Shard : DiscordClientDelegate {
     let shardingInfo: DiscordShardInformation
 
     var connected = false
-    var inVoiceChannel = [ChannelID: Bool]()
     var orphaned = true
-    var playingYoutube = [ChannelID: Bool]()
-    var youtubeQueue = [ChannelID: [QueuedVideo]]()
+    var voiceChannels = [GuildID: VoiceChannelInfo]()
 
     var shardNum: Int {
         return shardingInfo.shardRange.first!
@@ -118,19 +116,34 @@ class Shard : DiscordClientDelegate {
     func client(_ client: DiscordClient, isReadyToSendVoiceWithEngine engine: DiscordVoiceEngine) {
         print("voice engine ready")
 
-        inVoiceChannel[engine.voiceState.guildId] = true
-        playingYoutube[engine.voiceState.guildId] = false
+        guard var channelInfo = voiceChannels[engine.guildId] else { return }
 
-        guard var queue = youtubeQueue[engine.voiceState.guildId], !queue.isEmpty else {
-            return
-        }
+        channelInfo.playingYoutube = false
 
-        let video = queue.remove(at: 0)
-        youtubeQueue[engine.voiceState.guildId] = queue
+        guard !channelInfo.queue.isEmpty else { return }
+
+        let video = channelInfo.queue.remove(at: 0)
+
+        voiceChannels[engine.guildId] = channelInfo
 
         client.sendMessage(DiscordMessage(content: "Playing \(video.link)"), to: video.channel)
 
         _ = playYoutube(channelId: video.channel, link: video.link)
+    }
+
+    func client(_ client: DiscordClient, needsDataSourceForEngine engine: DiscordVoiceEngine) throws -> DiscordVoiceDataSource {
+        let encoder = try DiscordOpusEncoder(bitrate: 128_000)
+        var source = DiscordBufferedVoiceDataSource(opusEncoder: encoder)
+
+        DispatchQueue.main.sync {
+            guard let channelInfo = voiceChannels[engine.guildId] else { return }
+
+            source = DiscordBufferedVoiceDataSource(opusEncoder: encoder,
+                                                    bufferSize: channelInfo.bufferMax,
+                                                    drainThreshold: channelInfo.drainThreshold)
+        }
+
+        return source
     }
 
     func brutalizeImage(options: [String], channel: DiscordTextChannel) {
@@ -364,21 +377,24 @@ class Shard : DiscordClientDelegate {
     }
 
     func playYoutube(channelId: ChannelID, link: String, playNext: Bool = false) -> DiscordMessage {
-        guard let guild = client.guildForChannel(channelId), inVoiceChannel[guild.id] ?? false,
+        guard let guild = client.guildForChannel(channelId),
+              var channelInfo = voiceChannels[guild.id],
               let voiceEngine = client.voiceManager.voiceEngines[guild.id] else {
             return "Not in voice channel"
         }
 
-        guard !(playingYoutube[guild.id] ?? true) else {
-            let insertLocation = playNext ? 0 : youtubeQueue[guild.id]?.count ?? 0
+        defer { voiceChannels[guild.id] = channelInfo }
 
-            youtubeQueue[guild.id]?.insert((link, channelId), at: insertLocation)
+        guard !channelInfo.playingYoutube else {
+            let insertLocation = playNext ? 0 : channelInfo.queue.count
+
+            channelInfo.queue.insert((link, channelId), at: insertLocation)
 
             return DiscordMessage(content: "Video Queued\(playNext ? " Next" : ""). " +
-                                           "\(youtubeQueue[guild.id]?.count ?? -10000) videos in queue")
+                                           "\(channelInfo.queue.count) videos in queue")
         }
 
-        playingYoutube[guild.id] = true
+        channelInfo.playingYoutube = true
 
         let youtube = Process()
         youtube.launchPath = "/usr/local/bin/youtube-dl"
@@ -449,4 +465,11 @@ class Shard : DiscordClientDelegate {
 
         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 10, execute: unorphan)
     }
+}
+
+struct VoiceChannelInfo {
+    var bufferMax = 15_000
+    var drainThreshold = 13_500
+    var playingYoutube = false
+    var queue = [QueuedVideo]()
 }

@@ -33,9 +33,9 @@ enum Command : String {
     case talk = "talk"
     case topic = "topic"
     case translate = "translate"
-    case youtube = "yt"
     case weather = "weather"
     case wolfram = "wolfram"
+    case youtube = "yt"
 }
 
 protocol CommandHandler {

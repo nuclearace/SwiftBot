@@ -161,7 +161,8 @@ extension Shard : CommandHandler {
 
     func handleJoin(with arguments: [String], message: DiscordMessage) {
         let channel: DiscordGuildChannel
-        let result = voiceChannelCheck(name: arguments.joined(separator: " "), message: message)
+        let result = voiceChannelCheck(name: arguments.filter({ !$0.contains("=") }).joined(separator: " "),
+                                       message: message)
 
         switch result {
         case let .fine(voiceChannel):
@@ -174,7 +175,12 @@ extension Shard : CommandHandler {
             return
         }
 
-        youtubeQueue[message.channel!.guild!.id] = []
+        let (bufferSize, drainThreshold) = extractVoiceInfo(arguments: arguments)
+
+        voiceChannels[channel.guildId] = VoiceChannelInfo(bufferMax: bufferSize,
+                                                          drainThreshold: drainThreshold,
+                                                          playingYoutube: false,
+                                                          queue: [QueuedVideo]())
 
         client.joinVoiceChannel(channel.id)
     }
@@ -239,11 +245,7 @@ extension Shard : CommandHandler {
             return
         }
 
-        do {
-            try client.voiceManager.voiceEngines[message.channel?.guild?.id ?? 0]?.requestNewDataSource()
-        } catch {
-            message.channel?.send("Something went wrong trying to skip")
-        }
+        client.voiceManager.voiceEngines[message.channel?.guild?.id ?? 0]?.requestNewDataSource()
     }
 
     func handleStats(with arguments: [String], message: DiscordMessage) {
@@ -390,4 +392,26 @@ fileprivate extension Shard {
 
         return .fine(channel)
     }
+}
+
+private func extractVoiceInfo(arguments: [String]) -> (Int, Int) {
+    var bufferSize = 15_000
+    var drainThreshold = 13_500
+
+    for arg in arguments {
+        if arg.hasPrefix("b="),
+           let buffSize = Int(arg[arg.index(arg.startIndex, offsetBy: 2)...]),
+           buffSize > 0, buffSize <= 300_000 {
+            bufferSize = buffSize
+        } else if arg.hasPrefix("d="),
+                  let drainThresh = Int(arg[arg.index(arg.startIndex, offsetBy: 2)...]) {
+            drainThreshold = drainThresh
+        }
+    }
+
+    if drainThreshold > bufferSize || drainThreshold < 0 {
+        drainThreshold = 0
+    }
+
+    return (bufferSize, drainThreshold)
 }
