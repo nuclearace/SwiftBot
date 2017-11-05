@@ -118,13 +118,13 @@ class Shard : DiscordClientDelegate {
 
         guard var channelInfo = voiceChannels[engine.guildId] else { return }
 
+        defer { voiceChannels[engine.guildId] = channelInfo }
+
         channelInfo.playingYoutube = false
 
         guard !channelInfo.queue.isEmpty else { return }
 
         let video = channelInfo.queue.remove(at: 0)
-
-        voiceChannels[engine.guildId] = channelInfo
 
         client.sendMessage(DiscordMessage(content: "Playing \(video.link)"), to: video.channel)
 
