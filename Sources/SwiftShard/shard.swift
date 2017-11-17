@@ -70,7 +70,8 @@ class Shard : DiscordClientDelegate {
             .log(.info),
             .shardingInfo(shardingInfo),
             .fillUsers,
-            .pruneUsers
+            .pruneUsers,
+            .voiceConfiguration(DiscordVoiceEngineConfiguration(captureVoice: false, decodeVoice: false))
         ])
 
         bot = Bot(shard: self, shardNum: shardNum, shardCount: shardingInfo.shardRange.count)
@@ -116,9 +117,7 @@ class Shard : DiscordClientDelegate {
     func client(_ client: DiscordClient, isReadyToSendVoiceWithEngine engine: DiscordVoiceEngine) {
         print("voice engine ready")
 
-        guard var channelInfo = voiceChannels[engine.guildId] else { return }
-
-        defer { voiceChannels[engine.guildId] = channelInfo }
+        guard let channelInfo = voiceChannels[engine.guildId] else { return }
 
         channelInfo.playingYoutube = false
 
@@ -126,9 +125,7 @@ class Shard : DiscordClientDelegate {
 
         let video = channelInfo.queue.remove(at: 0)
 
-        client.sendMessage(DiscordMessage(content: "Playing \(video.link)"), to: video.channel)
-
-        _ = playYoutube(channelId: video.channel, link: video.link)
+        client.sendMessage(playYoutube(channelId: video.channel, link: video.link), to: video.channel)
     }
 
     func client(_ client: DiscordClient, needsDataSourceForEngine engine: DiscordVoiceEngine) throws -> DiscordVoiceDataSource {
@@ -404,7 +401,7 @@ class Shard : DiscordClientDelegate {
             print("youtube died")
         }
 
-        return "Playing"
+        return DiscordMessage(content: "Playing \(link)")
     }
 
     private func sendPing() {
@@ -467,9 +464,14 @@ class Shard : DiscordClientDelegate {
     }
 }
 
-struct VoiceChannelInfo {
+class VoiceChannelInfo {
     var bufferMax = 15_000
     var drainThreshold = 13_500
     var playingYoutube = false
     var queue = [QueuedVideo]()
+
+    init(bufferMax: Int, drainThreshold: Int) {
+        self.bufferMax = bufferMax
+        self.drainThreshold = drainThreshold
+    }
 }

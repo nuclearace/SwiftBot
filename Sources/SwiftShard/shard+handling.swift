@@ -177,10 +177,7 @@ extension Shard : CommandHandler {
 
         let (bufferSize, drainThreshold) = extractVoiceInfo(arguments: arguments)
 
-        voiceChannels[channel.guildId] = VoiceChannelInfo(bufferMax: bufferSize,
-                                                          drainThreshold: drainThreshold,
-                                                          playingYoutube: false,
-                                                          queue: [QueuedVideo]())
+        voiceChannels[channel.guildId] = VoiceChannelInfo(bufferMax: bufferSize, drainThreshold: drainThreshold)
 
         client.joinVoiceChannel(channel.id)
     }
