@@ -34,11 +34,11 @@ enum BotCall : String {
 
 class SwiftBot : Responder {
     let acceptQueue = DispatchQueue(label: "Accept Queue")
-    let cleverbotLimiter = RateLimiter(tokensPerInterval: 30, interval: "minute", firesImmediatly: true)
+    let cleverbotLimiter = RateLimiter(tokensPerInterval: 30, interval: .minute, firesImmediatly: true)
     let masterServer: TCPServer
     let startTime = Date()
-    let weatherLimiter = RateLimiter(tokensPerInterval: 10, interval: "minute", firesImmediatly: true)
-    let wolframLimiter = RateLimiter(tokensPerInterval: 67, interval: "day", firesImmediatly: true)
+    let weatherLimiter = RateLimiter(tokensPerInterval: 10, interval: .minute, firesImmediatly: true)
+    let wolframLimiter = RateLimiter(tokensPerInterval: 67, interval: .day, firesImmediatly: true)
 
     var authenticatedShards = 0
     var shards = [Int: Shard]()
@@ -196,8 +196,8 @@ class SwiftBot : Responder {
     }
 
     private func tryRemoveToken(from limiter: RateLimiter, callNum: Int, shardNum: Int) {
-        limiter.removeTokens(1) {err, tokens in
-            guard let tokens = tokens, tokens > 0 else {
+        limiter.removeTokens(1) {tokens in
+            guard tokens > 0 else {
                 self.shards[shardNum]?.sendResult(false, for: callNum)
 
                 return

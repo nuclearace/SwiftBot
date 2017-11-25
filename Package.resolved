@@ -42,8 +42,8 @@
         "repositoryURL": "https://github.com/vapor/core.git",
         "state": {
           "branch": null,
-          "revision": "b8330808f4f6b69941961afe8ad6b015562f7b7c",
-          "version": "2.1.2"
+          "revision": "f9f3a585ab0ea5764b46d7a36d9c0d9d508b9c63",
+          "version": "2.2.0"
         }
       },
       {
@@ -123,8 +123,8 @@
         "repositoryURL": "https://github.com/vapor/sockets.git",
         "state": {
           "branch": null,
-          "revision": "fb839a109d256e843945086f0730b49e4eeed091",
-          "version": "2.2.0"
+          "revision": "70d14c0e223257176f5ef69a595f7cad5de7a88b",
+          "version": "2.2.1"
         }
       },
       {
@@ -150,8 +150,8 @@
         "repositoryURL": "https://github.com/nuclearace/SwiftRateLimiter",
         "state": {
           "branch": null,
-          "revision": "5411f18542b720a96f8ca1c6b6ab438f6cf6e1fa",
-          "version": "1.0.2"
+          "revision": "d81a27e58c6741dad326de37b566524ab5cb2336",
+          "version": "2.0.0"
         }
       },
       {
