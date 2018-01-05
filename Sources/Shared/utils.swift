@@ -153,12 +153,12 @@ public func reduceStats(currentStats: [String: Any], otherStats: [String: Any]) 
         // Hacky, but trying to switch on the types fucks up, because on macOS JSONSerialization
         // turns numbers into some generic __NSCFNumber type, which can cast to anything.
         switch key {
-        case "shards":      fallthrough
-        case "name":        continue
-        case "orphan":      continue
-        case "uptime":      fallthrough
-        case "memory":      mutStats[key] = cur as! Double + (stat as! Double)
-        default:            mutStats[key] = cur as! Int + (stat as! Int)
+        case "shards", "name", "orphan":
+            continue
+        case "memory", "uptime":
+            mutStats[key] = cur as! Double + (stat as! Double)
+        default:
+            mutStats[key] = cur as! Int + (stat as! Int)
         }
     }
 
