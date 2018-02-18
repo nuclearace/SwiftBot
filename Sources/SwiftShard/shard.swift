@@ -23,8 +23,6 @@ import Sockets
 import SwiftDiscord
 import SwiftRateLimiter
 #if os(macOS)
-import ImageBrutalizer
-
 let machTaskBasicInfoCount = MemoryLayout<mach_task_basic_info_data_t>.size / MemoryLayout<natural_t>.size
 #endif
 
@@ -141,67 +139,6 @@ class Shard : DiscordClientDelegate {
         }
 
         return source
-    }
-
-    func brutalizeImage(options: [String], channel: DiscordTextChannel) {
-        #if os(macOS)
-        let args = options.map(BrutalArg.init)
-        var imagePath: String!
-
-        loop: for arg in args {
-            switch arg {
-            case let .url(image):
-                imagePath = image
-                break loop
-            default:
-                continue
-            }
-        }
-
-        guard imagePath != nil else {
-            channel.send("Missing image url")
-
-            return
-        }
-
-        guard let request = createGetRequest(for: imagePath) else {
-            channel.send("Invalid url")
-
-            return
-        }
-
-        getRequestData(for: request) {data in
-            guard let data = data else {
-                channel.send("Something went wrong with the request")
-
-                return
-            }
-
-            guard let brutalizer = ImageBrutalizer(data: data) else {
-                channel.send("Invalid image")
-
-                return
-            }
-
-            for arg in args {
-                arg.brutalize(with: brutalizer)
-            }
-
-            guard let outputData = brutalizer.outputData else {
-                channel.send("Something went wrong brutalizing the image")
-
-                return
-            }
-
-            let embed = DiscordEmbed(title: "Brutalized", description: "",
-                                     image: DiscordEmbed.Image(url: URL(string: "attachment://brutalized.png")!))
-            let file = DiscordFileUpload(data: outputData, filename: "brutalized.png", mimeType: "image/png")
-
-            channel.send(DiscordMessage(content: "", embed: embed, files: [file]))
-        }
-        #else
-        channel.send("Not available on Linux")
-        #endif
     }
 
     func calculateStats() -> [String: Any] {

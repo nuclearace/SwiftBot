@@ -77,11 +77,6 @@ extension Shard : CommandHandler {
         message.channel?.send(DiscordMessage(content: "```\(randomNum)```"))
     }
 
-
-    func handleBrutal(with arguments: [String], message: DiscordMessage) {
-        brutalizeImage(options: arguments, channel: message.channel!)
-    }
-
     func handleCommand(_ command: String, with arguments: [String], message: DiscordMessage) {
         print("got command \(command)")
 
@@ -113,8 +108,6 @@ extension Shard : CommandHandler {
             handleFortune(with: arguments, message: message)
         case .skip:
             handleSkip(with: arguments, message: message)
-        case .brutal where arguments.count > 0:
-            handleBrutal(with: arguments, message: message)
         case .talk where arguments.count > 0:
             handleTalk(with: arguments, message: message)
         case .topic where arguments.count > 0:

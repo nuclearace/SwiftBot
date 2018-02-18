@@ -24,8 +24,8 @@
         "repositoryURL": "https://github.com/vapor/ctls.git",
         "state": {
           "branch": null,
-          "revision": "fddec6a4643d6e85b6bb6dc54b1b5cdbabd395d2",
-          "version": "1.1.2"
+          "revision": "fba1297f4986a4dac8b02f7ac4e84a77fd492e4c",
+          "version": "1.1.3"
         }
       },
       {
@@ -44,15 +44,6 @@
           "branch": null,
           "revision": "f9f3a585ab0ea5764b46d7a36d9c0d9d508b9c63",
           "version": "2.2.0"
-        }
-      },
-      {
-        "package": "Cropper",
-        "repositoryURL": "https://github.com/nuclearace/ImageBrutalizer",
-        "state": {
-          "branch": null,
-          "revision": "2a46baa53a5d072c5f1c1ec61832ac78ff0e78ee",
-          "version": "1.0.3"
         }
       },
       {
@@ -123,8 +114,8 @@
         "repositoryURL": "https://github.com/vapor/sockets.git",
         "state": {
           "branch": null,
-          "revision": "70d14c0e223257176f5ef69a595f7cad5de7a88b",
-          "version": "2.2.1"
+          "revision": "a77816695630a44d5d1393fc71eac37ac3d082ca",
+          "version": "2.2.2"
         }
       },
       {
@@ -141,8 +132,8 @@
         "repositoryURL": "https://github.com/daltoniam/Starscream",
         "state": {
           "branch": null,
-          "revision": "6cb1c474e09b0a3aa60bcdc7553b570336d6a61a",
-          "version": "3.0.3"
+          "revision": "6e10c04c8387d00f41a17450fa45b51427971022",
+          "version": "3.0.4"
         }
       },
       {
