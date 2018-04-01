@@ -195,3 +195,18 @@ func getRequestData(for request: URLRequest, callback: @escaping (Data?) -> ()) 
         DispatchQueue.main.async { callback(data!) }
     }.resume()
 }
+
+#if swift(>=4.1)
+#else
+extension Optional {
+    func compactMap<T>(_ transform: (Wrapped) throws -> T?) rethrows -> T? {
+        return try self.flatMap(transform)
+    }
+}
+
+extension Collection {
+    func compactMap<T>(_ transform: (Element) throws -> T?) rethrows -> [T] {
+        return try self.flatMap(transform)
+    }
+}
+#endif

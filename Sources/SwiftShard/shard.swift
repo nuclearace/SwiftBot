@@ -148,7 +148,7 @@ class Shard : DiscordClientDelegate {
         let channels = guilds.flatMap({ $0.channels.map({ $0.value }) })
         let username = client.user!.username
         let guildNumber = guilds.count
-        let numberOfTextChannels = channels.flatMap({ $0 as? DiscordTextChannel }).count
+        let numberOfTextChannels = channels.compactMap({ $0 as? DiscordTextChannel }).count
         let numberOfVoiceChannels = channels.count - numberOfTextChannels
         let numberOfLoadedUsers = guilds.reduce(0, { $0 + $1.members.count })
         let totalUsers = guilds.reduce(0, { $0 + $1.memberCount })
@@ -169,11 +169,13 @@ class Shard : DiscordClientDelegate {
         var size = mach_msg_type_number_t(machTaskBasicInfoCount)
         let infoPointer = UnsafeMutablePointer<mach_task_basic_info>.allocate(capacity: 1)
 
-        task_info(name, flavor, unsafeBitCast(infoPointer, to: task_info_t!.self), &size)
+        let _ = infoPointer.withMemoryRebound(to: Int32.self, capacity: 1) {p in
+            task_info(name, flavor, p, &size)
+        }
 
         stats["memory"] = Double(infoPointer.pointee.resident_size) / 10e5
 
-        infoPointer.deallocate(capacity: 1)
+        infoPointer.deallocate()
         #endif
 
         return stats
@@ -208,7 +210,7 @@ class Shard : DiscordClientDelegate {
 
         // No guild, go through all the guilds
         // Returns first channel in the first guild with a match if multiple channels have the same name
-        return client.guilds.flatMap({_, guild in
+        return client.guilds.compactMap({_, guild in
             return guild.channels.reduce(DiscordGuildChannel?.none, {cur, keyValue in
                 guard cur == nil else { return cur } // already found
 

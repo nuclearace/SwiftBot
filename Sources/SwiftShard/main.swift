@@ -24,7 +24,7 @@ import SwiftDiscord
 guard CommandLine.arguments.count >= 3 else { fatalError("Not enough information to start") }
 
 let queue = DispatchQueue(label: "Async Read Shard")
-let shardRange = CommandLine.arguments[1].components(separatedBy: "..<").flatMap(Int.init)
+let shardRange = CommandLine.arguments[1].components(separatedBy: "..<").compactMap(Int.init)
 let totalShards = Int(CommandLine.arguments[2])!
 let fortuneExists = FileManager.default.fileExists(atPath: "/usr/local/bin/fortune")
 
