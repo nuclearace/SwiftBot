@@ -20,9 +20,7 @@ import Dispatch
 import Foundation
 import HTTP
 import Shared
-import Sockets
-import Transport
-import WebSockets
+import WebSocket
 
 enum TokenCall : String {
     case cleverbot = "removeCleverbotToken"
@@ -38,28 +36,41 @@ class Bot : RemoteCallable {
     var socket: WebSocket?
     var waitingCalls = [Int: (Any) throws -> ()]()
 
+    private let runloop: EventLoop
     private let shardCount: Int
 
     init(shard: Shard, shardNum: Int, shardCount: Int) {
         self.shard = shard
         self.shardNum = shardNum
         self.shardCount = shardCount
+        self.runloop = shard.runloops.next()
     }
 
     func identify() throws {
-        let headers: [HeaderKey: String] = [
-            HeaderKey("shardCount"): String(self.shardCount),
-            HeaderKey("shard"): String(self.shardNum),
-            HeaderKey("pw"): "\(authToken)\(self.shardNum)".sha3(.sha512),
-        ]
+//        let headers: [HeaderKey: String] = [
+//            HeaderKey("shardCount"): String(self.shardCount),
+//            HeaderKey("shard"): String(self.shardNum),
+//            HeaderKey("pw"): "\(authToken)\(self.shardNum)".sha3(.sha512),
+//        ]
 
-        try WebSocket.background(to: "ws://\(botHost):42343",
-                                 using: TCPInternetSocket(scheme: "ws", hostname: botHost, port: 42343),
-                                 headers: headers) {ws in
-            print("Shard #\(self.shardNum) WebSocket connected!")
+        let url = URL(string: "ws://\(botHost):42343")!
+        let path = url.path.isEmpty ? "/" : url.path
 
-            self.socket = ws
-            self.socket?.onText = {[weak self] ws, text in
+        let future = HTTPClient.webSocket(
+                scheme: .ws,
+                hostname: url.host!,
+                port: url.port,
+                path: path,
+                on: runloop
+        )
+
+//        let doneFuture = runloop.newSucceededFuture(result: ())
+
+        _ = future.then {[weak self] ws -> EventLoopFuture<()> in
+            guard let this = self else { fatalError() }
+
+            this.socket = ws
+            this.socket?.onText {ws, text in
                 guard let this = self else { return }
 
                 do {
@@ -69,16 +80,24 @@ class Bot : RemoteCallable {
                 }
             }
 
-            self.socket?.onClose = {[weak self] _, _, reason, clean in
+            this.socket?.onClose.do {_ in
                 guard let this = self else { return }
 
-                print("Shard #\(this.shardNum) disconnected. reason: \(reason ?? "unknown"); clean: \(clean)")
+                print("Shard #\(this.shardNum) disconnected.")
 
                 DispatchQueue.main.async {
                     this.shard?.setupOrphanedShard()
                 }
-            }
+            }.catch({_ in })
+
+            return this.runloop.newSucceededFuture(result: ())
         }
+
+        future.catch({[weak self] error in
+            guard let this = self else { return }
+
+            this.handleTransportError(error)
+        })
     }
 
     func handleTransportError(_ error: Error) {

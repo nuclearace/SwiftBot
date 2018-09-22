@@ -17,8 +17,7 @@
 
 import Dispatch
 import Foundation
-import Sockets
-import WebSockets
+import WebSocket
 
 public enum SwiftBotError : Error {
     case authenticationFailure
@@ -92,7 +91,7 @@ public extension RemoteCallable {
     }
 
     func pingSocket() throws {
-        try self.socket?.ping()
+//        try self.socket?.ping()
 
         DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 20) {[weak self] in
             guard let this = self else { return }

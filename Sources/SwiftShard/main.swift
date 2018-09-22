@@ -53,7 +53,7 @@ func readAsync() {
 
 readAsync()
 
-shard.unorphan()
+//shard.unorphan()
 
 if jumpstart {
     shard.connect(id: -1, waitTime: 0)
