@@ -17,7 +17,7 @@
 
 import Dispatch
 import Foundation
-import WebSocket
+import Starscream
 
 public enum SwiftBotError : Error {
     case authenticationFailure
@@ -105,7 +105,7 @@ public extension RemoteCallable {
     }
 
     private func remoteCall(object: [String: Any]) throws {
-        try socket!.send(encodeDataPacket(object))
+        try socket!.write(string: encodeDataPacket(object))
     }
 
     func sendResult(_ result: Any, for id: Int) {

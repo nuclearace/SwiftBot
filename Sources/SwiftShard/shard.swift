@@ -18,7 +18,6 @@
 import Cleverbot
 import Dispatch
 import Foundation
-import NIO
 import Shared
 import SwiftDiscord
 import SwiftRateLimiter
@@ -41,7 +40,6 @@ class Shard : DiscordClientDelegate {
     var client: DiscordClient!
     let startTime = Date()
     let adoptLimiter = RateLimiter(tokensPerInterval: 15, interval: .minute, firesImmediatly: true)
-    let runloops = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
     let shardingInfo: DiscordShardInformation
 
     var connected = false
@@ -101,7 +99,7 @@ class Shard : DiscordClientDelegate {
         connected = false
 
         do {
-            try bot.socket?.close()
+            try bot.socket?.disconnect()
         } catch {
             print("Error closing #\(shardNum)")
         }
