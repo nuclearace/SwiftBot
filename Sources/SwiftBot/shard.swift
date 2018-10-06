@@ -18,8 +18,7 @@
 import Dispatch
 import Foundation
 import Shared
-import Sockets
-import WebSockets
+import WebSocket
 
 class Shard : RemoteCallable {
     let shardCount: Int
@@ -45,7 +44,7 @@ class Shard : RemoteCallable {
 
         try self.pingSocket()
 
-        self.socket?.onText = {[weak self] ws, text in
+        self.socket?.onText {[weak self] ws, text in
             guard let this = self else { return }
 
             do {
@@ -55,10 +54,10 @@ class Shard : RemoteCallable {
             }
         }
 
-        self.socket?.onClose = {[weak self] _, _, reason, clean in
+        self.socket?.onClose.do {[weak self] _ in
             guard let this = self else { return }
 
-            print("Shard #\(this.shardNum) disconnected, reason: \(reason ?? "unknown"); clean: \(clean)")
+            print("Shard #\(this.shardNum) disconnected")
 
             DispatchQueue.main.async {
                 this.bot?.authenticatedShards -= this.shardCount

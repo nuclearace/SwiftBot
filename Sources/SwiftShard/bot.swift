@@ -19,7 +19,8 @@ import CryptoSwift
 import Dispatch
 import Foundation
 import Shared
-import Starscream
+import NIO
+import WebSocket
 
 enum TokenCall : String {
     case cleverbot = "removeCleverbotToken"
@@ -36,11 +37,13 @@ class Bot : RemoteCallable {
     var waitingCalls = [Int: (Any) throws -> ()]()
 
     private let shardCount: Int
+    private let runloop: EventLoop
 
-    init(shard: Shard, shardNum: Int, shardCount: Int) {
+    init(shard: Shard, shardNum: Int, shardCount: Int, runloop: EventLoop) {
         self.shard = shard
         self.shardNum = shardNum
         self.shardCount = shardCount
+        self.runloop = runloop
     }
 
     func identify() throws {
@@ -52,27 +55,46 @@ class Bot : RemoteCallable {
 
         let url = URL(string: "ws://\(botHost):42343")!
         let path = url.path.isEmpty ? "/" : url.path
-        self.socket = WebSocket(request: URLRequest(url: url))
 
-        socket?.onText = {[weak self] string in
-            guard let this = self else { return }
+        let future = HTTPClient.webSocket(scheme: .wss,
+                hostname: url.host!,
+                port: url.port,
+                path: path,
+                on: runloop
+        )
+        let doneFuture = runloop.newSucceededFuture(result: ())
 
-            do {
-                try this.handleMessage(string)
-            } catch let err {
-                this.handleTransportError(err)
+        _ = future.then {[weak self] ws -> EventLoopFuture<()> in
+            guard let this = self else { return doneFuture }
+
+            this.socket = ws
+
+            this.socket?.onText {[weak self] ws, string in
+                guard let this = self else { return }
+
+                do {
+                    try this.handleMessage(string)
+                } catch let err {
+                    this.handleTransportError(err)
+                }
             }
+
+            _ = this.socket?.onClose.do {[weak self] err in
+                guard let this = self else { return }
+
+                print("Shard #\(this.shardNum) disconnected.")
+
+                DispatchQueue.main.async {
+                    this.shard?.setupOrphanedShard()
+                }
+            }
+
+            return doneFuture
         }
 
-        socket?.onDisconnect = {[weak self] err in
-            guard let this = self else { return }
-
-            print("Shard #\(this.shardNum) disconnected.")
-
-            DispatchQueue.main.async {
-                this.shard?.setupOrphanedShard()
-            }
-        }
+        future.catch({[weak self] error in
+            print("Error \(error)")
+        })
     }
 
     func handleTransportError(_ error: Error) {

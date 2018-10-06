@@ -18,6 +18,7 @@
 import CoreFoundation
 import Dispatch
 import Foundation
+import NIO
 import Shared
 import SwiftDiscord
 
@@ -31,7 +32,7 @@ let fortuneExists = FileManager.default.fileExists(atPath: "/usr/local/bin/fortu
 guard shardRange.count == 2 else { fatalError("Incorrect shard range. Must be n..<m") }
 
 let shardInfo = try DiscordShardInformation(shardRange: shardRange[0]..<shardRange[1], totalShards: totalShards)
-let shard = Shard(token: token, shardingInfo: shardInfo)
+var shard: Shard!
 let jumpstart = CommandLine.arguments.contains("jumpstart") || CommandLine.arguments.contains("j")
 
 func readAsync() {
@@ -53,10 +54,15 @@ func readAsync() {
 
 readAsync()
 
+let runGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
+
 //shard.unorphan()
 
 if jumpstart {
-    shard.connect(id: -1, waitTime: 0)
+    runGroup.next().execute {
+        shard = Shard(token: token, shardingInfo: shardInfo)
+        shard.connect(id: -1, waitTime: 0)
+    }
 }
 
 CFRunLoopRun()

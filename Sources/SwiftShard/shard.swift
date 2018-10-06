@@ -18,6 +18,7 @@
 import Cleverbot
 import Dispatch
 import Foundation
+import NIO
 import Shared
 import SwiftDiscord
 import SwiftRateLimiter
@@ -64,14 +65,19 @@ class Shard : DiscordClientDelegate {
         self.shardingInfo = shardingInfo
 
         client = DiscordClient(token: token, delegate: self, configuration: [
-            .log(.info),
+            .log(.debug),
             .shardingInfo(shardingInfo),
             .fillUsers,
             .pruneUsers,
             .voiceConfiguration(DiscordVoiceEngineConfiguration(captureVoice: false, decodeVoice: false))
         ])
 
-        bot = Bot(shard: self, shardNum: shardNum, shardCount: shardingInfo.shardRange.count)
+        bot = Bot(
+            shard: self,
+            shardNum: shardNum,
+            shardCount: shardingInfo.shardRange.count,
+            runloop: MultiThreadedEventLoopGroup.currentEventLoop!
+        )
     }
 
     func clearStats() {
@@ -99,7 +105,7 @@ class Shard : DiscordClientDelegate {
         connected = false
 
         do {
-            try bot.socket?.disconnect()
+            try bot.socket?.close()
         } catch {
             print("Error closing #\(shardNum)")
         }

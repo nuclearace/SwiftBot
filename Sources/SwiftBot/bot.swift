@@ -20,9 +20,8 @@ import Dispatch
 import Foundation
 import HTTP
 import Shared
-import Sockets
 import SwiftRateLimiter
-import WebSockets
+import WebSocket
 
 enum BotCall : String {
     case getStats
@@ -32,10 +31,10 @@ enum BotCall : String {
     case removeWolframToken
 }
 
-class SwiftBot : Responder {
+class SwiftBot {
     let acceptQueue = DispatchQueue(label: "Accept Queue")
     let cleverbotLimiter = RateLimiter(tokensPerInterval: 30, interval: .minute, firesImmediatly: true)
-    let masterServer: TCPServer
+//    let masterServer: TCPServer
     let startTime = Date()
     let weatherLimiter = RateLimiter(tokensPerInterval: 10, interval: .minute, firesImmediatly: true)
     let wolframLimiter = RateLimiter(tokensPerInterval: 67, interval: .day, firesImmediatly: true)
@@ -49,7 +48,7 @@ class SwiftBot : Responder {
     var waitingForStats = false
 
     init() throws {
-        masterServer = try TCPServer(TCPInternetSocket(InternetAddress(hostname: botHost, port: 42343)))
+//        masterServer = try TCPServer(TCPInternetSocket(InternetAddress(hostname: botHost, port: 42343)))
     }
 
     func attachSocketToBot(_ socket: WebSocket, shard: Int, shardCount: Int) throws {
@@ -149,22 +148,22 @@ class SwiftBot : Responder {
         shards[shardNum]?.sendResult(true, for: callNum)
     }
 
-    func respond(to request: Request) throws -> Response {
-        print("Got new connection\nauthenticating")
-
-        // Before a bot starts up, it should identify itself
-        guard let shard = Int(request.headers["shard"]!),
-              let shardCount = Int(request.headers["shardCount"]!),
-              let pw = request.headers["pw"], pw == "\(authToken)\(shard)".sha3(.sha512) else {
-            throw SwiftBotError.authenticationFailure
-        }
-
-        return try request.upgradeToWebSocket {ws in
-            print("Upgraded shard #\(shard) socket to WebSockets")
-
-            try self.attachSocketToBot(ws, shard: shard, shardCount: shardCount)
-        }
-    }
+//    func respond(to request: Request) throws -> Response {
+//        print("Got new connection\nauthenticating")
+//
+//        // Before a bot starts up, it should identify itself
+//        guard let shard = Int(request.headers["shard"]!),
+//              let shardCount = Int(request.headers["shardCount"]!),
+//              let pw = request.headers["pw"], pw == "\(authToken)\(shard)".sha3(.sha512) else {
+//            throw SwiftBotError.authenticationFailure
+//        }
+//
+//        return try request.upgradeToWebSocket {ws in
+//            print("Upgraded shard #\(shard) socket to WebSockets")
+//
+//            try self.attachSocketToBot(ws, shard: shard, shardCount: shardCount)
+//        }
+//    }
 
     func restart() {
         connected = false
@@ -184,9 +183,9 @@ class SwiftBot : Responder {
     func setupServer() throws {
         print("Starting to listen")
 
-        try masterServer.start(self) {err in
-            print(err)
-        }
+//        try masterServer.start(self) {err in
+//            print(err)
+//        }
     }
 
     func shutdown() {
