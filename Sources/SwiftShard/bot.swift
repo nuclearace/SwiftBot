@@ -52,49 +52,49 @@ class Bot : RemoteCallable {
 //            HeaderKey("shard"): String(self.shardNum),
 //            HeaderKey("pw"): "\(authToken)\(self.shardNum)".sha3(.sha512),
 //        ]
-
-        let url = URL(string: "ws://\(botHost):42343")!
-        let path = url.path.isEmpty ? "/" : url.path
-
-        let future = HTTPClient.webSocket(scheme: .wss,
-                hostname: url.host!,
-                port: url.port,
-                path: path,
-                on: runloop
-        )
-        let doneFuture = runloop.newSucceededFuture(result: ())
-
-        _ = future.then {[weak self] ws -> EventLoopFuture<()> in
-            guard let this = self else { return doneFuture }
-
-            this.socket = ws
-
-            this.socket?.onText {[weak self] ws, string in
-                guard let this = self else { return }
-
-                do {
-                    try this.handleMessage(string)
-                } catch let err {
-                    this.handleTransportError(err)
-                }
-            }
-
-            _ = this.socket?.onClose.do {[weak self] err in
-                guard let this = self else { return }
-
-                print("Shard #\(this.shardNum) disconnected.")
-
-                DispatchQueue.main.async {
-                    this.shard?.setupOrphanedShard()
-                }
-            }
-
-            return doneFuture
-        }
-
-        future.catch({[weak self] error in
-            print("Error \(error)")
-        })
+//
+//        let url = URL(string: "ws://\(botHost):42343")!
+//        let path = url.path.isEmpty ? "/" : url.path
+//
+//        let future = HTTPClient.webSocket(scheme: .wss,
+//                hostname: url.host!,
+//                port: url.port,
+//                path: path,
+//                on: runloop
+//        )
+//        let doneFuture = runloop.newSucceededFuture(result: ())
+//
+//        _ = future.then {[weak self] ws -> EventLoopFuture<()> in
+//            guard let this = self else { return doneFuture }
+//
+//            this.socket = ws
+//
+//            this.socket?.onText {[weak self] ws, string in
+//                guard let this = self else { return }
+//
+//                do {
+//                    try this.handleMessage(string)
+//                } catch let err {
+//                    this.handleTransportError(err)
+//                }
+//            }
+//
+//            _ = this.socket?.onClose.do {[weak self] err in
+//                guard let this = self else { return }
+//
+//                print("Shard #\(this.shardNum) disconnected.")
+//
+//                DispatchQueue.main.async {
+//                    this.shard?.setupOrphanedShard()
+//                }
+//            }
+//
+//            return doneFuture
+//        }
+//
+//        future.catch({[weak self] error in
+//            print("Error \(error)")
+//        })
     }
 
     func handleTransportError(_ error: Error) {

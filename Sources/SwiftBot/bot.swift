@@ -23,6 +23,8 @@ import Shared
 import SwiftRateLimiter
 import WebSocketKit
 
+typealias WebSocket = WebSocketKit.WebSocket
+
 enum BotCall : String {
     case getStats
     case ping

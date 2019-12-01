@@ -26,6 +26,56 @@ enum VoiceChannelCheckResult {
 }
 
 extension Shard : CommandHandler {
+    func handleCommand(_ command: String, with arguments: [String], message: DiscordMessage) {
+        print("got command \(command)")
+
+        if let guild = message.channel?.guild, ignoreGuilds.contains(guild.id),
+           !userOverrides.contains(message.author.id) {
+            print("Ignoring this guild")
+
+            return
+        }
+
+        guard let command = Command(rawValue: command.lowercased()) else { return }
+
+        switch command {
+        case .ask where arguments.count > 0:
+            handleAsk(with: arguments, message: message)
+        case .roles:
+            handleMyRoles(with: arguments, message: message)
+        case .dubs:
+            handleDubs(with: arguments, message: message)
+        case .join where arguments.count > 0:
+            handleJoin(with: arguments, message: message)
+        case .leave where arguments.count > 0:
+            handleLeave(with: arguments, message: message)
+        case .is:
+            handleIs(with: arguments, message: message)
+        case .youtube where arguments.count >= 1:
+            handleYoutube(with: arguments, message: message)
+        case .fortune:
+            handleFortune(with: arguments, message: message)
+        case .skip:
+            handleSkip(with: arguments, message: message)
+        case .talk where arguments.count > 0:
+            handleTalk(with: arguments, message: message)
+        case .topic where arguments.count > 0:
+            handleTopic(with: arguments, message: message)
+        case .translate where arguments.count > 0:
+            handleTranslation(with: arguments, message: message)
+        case .stats:
+            handleStats(with: arguments, message: message)
+        case .weather where arguments.count > 0:
+            handleWeather(with: arguments, message: message)
+        case .wolfram where arguments.count > 0:
+            handleWolfram(with: arguments, message: message)
+        case .forecast where arguments.count > 0:
+            handleForecast(with: arguments, message: message)
+        default:
+            print("Bad command \(command)")
+        }
+    }
+
     private func fetchForecast(location: String, tomorrow: Bool, message: DiscordMessage) {
         getForecastData(forLocation: location) {forecastData in
             guard let forecast = forecastData,
@@ -75,56 +125,6 @@ extension Shard : CommandHandler {
         #endif
 
         message.channel?.send(DiscordMessage(content: "```\(randomNum)```"))
-    }
-
-    func handleCommand(_ command: String, with arguments: [String], message: DiscordMessage) {
-        print("got command \(command)")
-
-        if let guild = message.channel?.guild, ignoreGuilds.contains(guild.id),
-                !userOverrides.contains(message.author.id) {
-            print("Ignoring this guild")
-
-            return
-        }
-
-        guard let command = Command(rawValue: command.lowercased()) else { return }
-
-        switch command {
-        case .ask where arguments.count > 0:
-            handleAsk(with: arguments, message: message)
-        case .roles:
-            handleMyRoles(with: arguments, message: message)
-        case .dubs:
-            handleDubs(with: arguments, message: message)
-        case .join where arguments.count > 0:
-            handleJoin(with: arguments, message: message)
-        case .leave where arguments.count > 0:
-            handleLeave(with: arguments, message: message)
-        case .is:
-            handleIs(with: arguments, message: message)
-        case .youtube where arguments.count >= 1:
-            handleYoutube(with: arguments, message: message)
-        case .fortune:
-            handleFortune(with: arguments, message: message)
-        case .skip:
-            handleSkip(with: arguments, message: message)
-        case .talk where arguments.count > 0:
-            handleTalk(with: arguments, message: message)
-        case .topic where arguments.count > 0:
-            handleTopic(with: arguments, message: message)
-        case .translate where arguments.count > 0:
-            handleTranslation(with: arguments, message: message)
-        case .stats:
-            handleStats(with: arguments, message: message)
-        case .weather where arguments.count > 0:
-            handleWeather(with: arguments, message: message)
-        case .wolfram where arguments.count > 0:
-            handleWolfram(with: arguments, message: message)
-        case .forecast where arguments.count > 0:
-            handleForecast(with: arguments, message: message)
-        default:
-            print("Bad command \(command)")
-        }
     }
 
     func handleFortune(with arguments: [String], message: DiscordMessage) {

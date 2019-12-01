@@ -40,7 +40,7 @@ class Shard : DiscordClientDelegate {
     let cleverbot = Cleverbot(apiKey: cleverbotKey)
     var client: DiscordClient!
     let startTime = Date()
-//    let adoptLimiter = RateLimiter(tokensPerInterval: 15, interval: .minute, firesImmediatly: true)
+    let adoptLimiter = RateLimiter(tokensPerInterval: 15, interval: .minute, firesImmediatly: true)
     let shardingInfo: DiscordShardInformation
 
     var connected = false
@@ -65,7 +65,7 @@ class Shard : DiscordClientDelegate {
         self.shardingInfo = shardingInfo
 
         client = DiscordClient(token: token, delegate: self, configuration: [
-            .log(.debug),
+            .log(.trace),
             .shardingInfo(shardingInfo),
             .fillUsers,
             .pruneUsers,
@@ -138,9 +138,12 @@ class Shard : DiscordClientDelegate {
         DispatchQueue.main.sync {
             guard let channelInfo = voiceChannels[engine.guildId] else { return }
 
-            source = DiscordBufferedVoiceDataSource(opusEncoder: encoder,
-                                                    bufferSize: channelInfo.bufferMax,
-                                                    drainThreshold: channelInfo.drainThreshold)
+//            source = DiscordBufferedVoiceDataSource(opusEncoder: encoder,
+//                                                    bufferSize: channelInfo.bufferMax,
+//                                                    drainThreshold: channelInfo.drainThreshold)
+
+              let url = URL(fileURLWithPath: ("~/Desktop/out.raw" as NSString).expandingTildeInPath)
+              source = try! DiscordVoiceFileDataSource(opusEncoder: encoder, file: url)
         }
 
         return source

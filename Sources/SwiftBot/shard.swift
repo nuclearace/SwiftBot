@@ -54,7 +54,7 @@ class Shard : RemoteCallable {
             }
         }
 
-        self.socket?.onClose.do {[weak self] _ in
+        self.socket?.onClose.whenComplete {[weak self] _ in
             guard let this = self else { return }
 
             print("Shard #\(this.shardNum) disconnected")
