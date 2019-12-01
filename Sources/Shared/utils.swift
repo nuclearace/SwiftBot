@@ -17,7 +17,7 @@
 
 import Dispatch
 import Foundation
-import WebSocket
+import WebSocketKit
 
 public enum SwiftBotError : Error {
     case authenticationFailure

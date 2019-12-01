@@ -40,7 +40,7 @@ class Shard : DiscordClientDelegate {
     let cleverbot = Cleverbot(apiKey: cleverbotKey)
     var client: DiscordClient!
     let startTime = Date()
-    let adoptLimiter = RateLimiter(tokensPerInterval: 15, interval: .minute, firesImmediatly: true)
+//    let adoptLimiter = RateLimiter(tokensPerInterval: 15, interval: .minute, firesImmediatly: true)
     let shardingInfo: DiscordShardInformation
 
     var connected = false

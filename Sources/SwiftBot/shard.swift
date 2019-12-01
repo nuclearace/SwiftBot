@@ -18,7 +18,7 @@
 import Dispatch
 import Foundation
 import Shared
-import WebSocket
+import WebSocketKit
 
 class Shard : RemoteCallable {
     let shardCount: Int

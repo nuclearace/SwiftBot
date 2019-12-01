@@ -18,10 +18,10 @@
 import CryptoSwift
 import Dispatch
 import Foundation
-import HTTP
+import HTTPKit
 import Shared
 import SwiftRateLimiter
-import WebSocket
+import WebSocketKit
 
 enum BotCall : String {
     case getStats

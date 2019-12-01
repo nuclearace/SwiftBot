@@ -20,7 +20,7 @@ import Dispatch
 import Foundation
 import Shared
 import NIO
-import WebSocket
+import WebSocketKit
 
 enum TokenCall : String {
     case cleverbot = "removeCleverbotToken"

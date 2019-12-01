@@ -2,39 +2,30 @@
   "object": {
     "pins": [
       {
+        "package": "Socket",
+        "repositoryURL": "https://github.com/IBM-Swift/BlueSocket",
+        "state": {
+          "branch": null,
+          "revision": "c46a3d41f5b2401d18bcb46d0101cdc5cd13e307",
+          "version": "1.0.52"
+        }
+      },
+      {
         "package": "Cleverbot",
         "repositoryURL": "https://github.com/nuclearace/CleverSwift",
         "state": {
           "branch": null,
-          "revision": "b791e346de7a771934c8e34d2173893b1382355f",
-          "version": "0.1.4"
+          "revision": "7fd05b1403b71eb5d92c3adfc18c37b5090fc879",
+          "version": "0.2.0"
         }
       },
       {
-        "package": "SSCommonCrypto",
-        "repositoryURL": "https://github.com/daltoniam/common-crypto-spm",
+        "package": "COPUS",
+        "repositoryURL": "https://github.com/nuclearace/copus",
         "state": {
           "branch": null,
-          "revision": "2eb3aff0fb57f92f5722fac5d6d20bf64669ca66",
-          "version": "1.1.0"
-        }
-      },
-      {
-        "package": "Core",
-        "repositoryURL": "https://github.com/vapor/core.git",
-        "state": {
-          "branch": null,
-          "revision": "eb876a758733166a4fb20f3f0a17b480c5ea563e",
-          "version": "3.4.3"
-        }
-      },
-      {
-        "package": "Crypto",
-        "repositoryURL": "https://github.com/vapor/crypto.git",
-        "state": {
-          "branch": null,
-          "revision": "4b85405430df1892ee3aa1554bdb477e96cf46ad",
-          "version": "3.2.0"
+          "revision": "a2af57fa582c0191789f446cc430615ee7e41d4f",
+          "version": "2.1.1"
         }
       },
       {
@@ -42,26 +33,35 @@
         "repositoryURL": "https://github.com/krzyzanowskim/CryptoSwift",
         "state": {
           "branch": null,
-          "revision": "daafe952bf379bc176d6970cf52bb3747d264fcb",
-          "version": "0.7.2"
+          "revision": "79ac632c85df81f2618dd838fc3869633e163370",
+          "version": "1.2.0"
         }
       },
       {
-        "package": "HTTP",
-        "repositoryURL": "https://github.com/vapor/http.git",
+        "package": "http-kit",
+        "repositoryURL": "https://github.com/vapor/http",
         "state": {
           "branch": null,
-          "revision": "9e3eff9dfa4df7fc282bf27f801c72b3ffbfd984",
-          "version": "3.1.4"
+          "revision": "3e49ea0b7c16ee0e0985babff9659d467d4f59fd",
+          "version": null
         }
       },
       {
-        "package": "Starscream",
-        "repositoryURL": "https://github.com/daltoniam/Starscream",
+        "package": "Sodium",
+        "repositoryURL": "https://github.com/nuclearace/Sodium",
         "state": {
           "branch": null,
-          "revision": "114e5df9b6251970a069e8f1c0cbb5802759f0a9",
-          "version": "3.0.5"
+          "revision": "5812a3d879b77aae0fdfbd62d0e8354e914d15ae",
+          "version": "2.0.0"
+        }
+      },
+      {
+        "package": "swift-log",
+        "repositoryURL": "https://github.com/apple/swift-log.git",
+        "state": {
+          "branch": "master",
+          "revision": "012cff81f6c22c1783a81c2a13ddff11e6afe156",
+          "version": null
         }
       },
       {
@@ -69,8 +69,26 @@
         "repositoryURL": "https://github.com/apple/swift-nio.git",
         "state": {
           "branch": null,
-          "revision": "5d8148c8b45dfb449276557f22120694567dd1d2",
-          "version": "1.9.5"
+          "revision": "ff01888051cd7efceb1bf8319c1dd3986c4bf6fc",
+          "version": "2.10.1"
+        }
+      },
+      {
+        "package": "swift-nio-extras",
+        "repositoryURL": "https://github.com/apple/swift-nio-extras.git",
+        "state": {
+          "branch": null,
+          "revision": "53808818c2015c45247cad74dc05c7a032c96a2f",
+          "version": "1.3.2"
+        }
+      },
+      {
+        "package": "swift-nio-http2",
+        "repositoryURL": "https://github.com/apple/swift-nio-http2.git",
+        "state": {
+          "branch": null,
+          "revision": "867259332c45d5405efed844f7b3997ebfa94167",
+          "version": "1.7.2"
         }
       },
       {
@@ -78,26 +96,8 @@
         "repositoryURL": "https://github.com/apple/swift-nio-ssl.git",
         "state": {
           "branch": null,
-          "revision": "8380fa29a2af784b067d8ee01c956626ca29f172",
-          "version": "1.3.1"
-        }
-      },
-      {
-        "package": "swift-nio-ssl-support",
-        "repositoryURL": "https://github.com/apple/swift-nio-ssl-support.git",
-        "state": {
-          "branch": null,
-          "revision": "c02eec4e0e6d351cd092938cf44195a8e669f555",
-          "version": "1.0.0"
-        }
-      },
-      {
-        "package": "swift-nio-zlib-support",
-        "repositoryURL": "https://github.com/apple/swift-nio-zlib-support.git",
-        "state": {
-          "branch": null,
-          "revision": "37760e9a52030bb9011972c5213c3350fa9d41fd",
-          "version": "1.0.0"
+          "revision": "ccf96bbe65ecc7c1558ab0dba7ffabdea5c1d31f",
+          "version": "2.4.4"
         }
       },
       {
@@ -105,26 +105,17 @@
         "repositoryURL": "https://github.com/nuclearace/SwiftRateLimiter",
         "state": {
           "branch": null,
-          "revision": "d81a27e58c6741dad326de37b566524ab5cb2336",
-          "version": "2.0.0"
+          "revision": "a6d34d5e73eccdfb90f9a3703f321d1db983b64c",
+          "version": "3.0.0"
         }
       },
       {
-        "package": "WebSocket",
-        "repositoryURL": "https://github.com/vapor/websocket",
+        "package": "websocket-kit",
+        "repositoryURL": "https://github.com/vapor/websocket-kit",
         "state": {
           "branch": null,
-          "revision": "149af03348f60ac8b84defdf277112d62fd8c704",
-          "version": "1.0.2"
-        }
-      },
-      {
-        "package": "SSCZLib",
-        "repositoryURL": "https://github.com/daltoniam/zlib-spm.git",
-        "state": {
-          "branch": null,
-          "revision": "83ac8d719a2f3aa775dbdf116a57f56fb2c49abb",
-          "version": "1.1.0"
+          "revision": "66c0ea58398f055b5a0d92b0d5f4c32ef0c02eeb",
+          "version": null
         }
       }
     ]
